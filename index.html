@@ -18,7 +18,10 @@
         </div>
 
         <nav class="nav-tabs" aria-label="Calculadoras">
-          <button class="tab-button active" type="button" data-tab="guia">
+          <button class="tab-button active" type="button" data-tab="bussola">
+            <span aria-hidden="true">◎</span> Bússola
+          </button>
+          <button class="tab-button" type="button" data-tab="guia">
             <span aria-hidden="true">◎</span> Guia
           </button>
           <button class="tab-button" type="button" data-tab="personagem">
@@ -60,15 +63,15 @@
         <header class="topbar">
           <div>
             <p class="eyebrow">Planejador local</p>
-            <h1>Calculadora Genshin Impact</h1>
+            <h1>Bússola CalcTeyvat</h1>
           </div>
           <div class="top-actions">
-            <button class="ghost-button" type="button" id="exportPlan">Exportar plano</button>
+            <button class="ghost-button" type="button" id="exportPlan">Exportar agenda</button>
             <button class="ghost-button" type="button" id="resetInputs">Limpar</button>
           </div>
         </header>
 
-        <section class="selector-band hero-band" aria-labelledby="seletores-gerais">
+        <section class="selector-band hero-band legacy-panel" aria-labelledby="seletores-gerais">
           <h2 id="seletores-gerais" class="sr-only">Seletores gerais</h2>
           <img class="hero-art" id="heroArtwork" alt="" />
           <div class="hero-shade" aria-hidden="true"></div>
@@ -106,6 +109,147 @@
             <span>Resina estimada</span>
             <strong id="globalResin">0</strong>
           </div>
+        </section>
+
+        <section class="tab-panel active" id="bussola" aria-labelledby="bussola-title">
+          <div class="compass-hero">
+            <div>
+              <p class="eyebrow">Agenda de progresso</p>
+              <h2 id="bussola-title">Defina seus alvos e siga o plano diário</h2>
+            </div>
+            <div class="compass-hero-stats" id="compassHeroStats">
+              <span>0 personagens</span>
+              <strong>0 resina</strong>
+            </div>
+          </div>
+
+          <div class="compass-layout">
+            <form class="tool-surface compass-form" id="compassGoalForm">
+              <fieldset>
+                <legend>Objetivo</legend>
+                <label>
+                  Personagem
+                  <select id="compassCharacterSelect"></select>
+                </label>
+                <div class="field-row two">
+                  <label>Nível atual<input type="number" min="1" max="90" id="compassCurrentLevel" value="1" /></label>
+                  <label>Nível alvo<input type="number" min="1" max="90" id="compassTargetLevel" value="90" /></label>
+                </div>
+                <div class="field-row two">
+                  <label>Ascensão atual<select id="compassCurrentCap"></select></label>
+                  <label>Ascensão alvo<select id="compassTargetCap"></select></label>
+                </div>
+              </fieldset>
+
+              <fieldset>
+                <legend>Talentos</legend>
+                <div class="talent-lines compact">
+                  <div class="talent-line">
+                    <span>Ataque</span>
+                    <label>Atual<input type="number" min="1" max="10" id="compassNormalCurrent" value="1" /></label>
+                    <label>Alvo<input type="number" min="1" max="10" id="compassNormalTarget" value="1" /></label>
+                  </div>
+                  <div class="talent-line">
+                    <span>Habilidade</span>
+                    <label>Atual<input type="number" min="1" max="10" id="compassSkillCurrent" value="1" /></label>
+                    <label>Alvo<input type="number" min="1" max="10" id="compassSkillTarget" value="8" /></label>
+                  </div>
+                  <div class="talent-line">
+                    <span>Supremo</span>
+                    <label>Atual<input type="number" min="1" max="10" id="compassBurstCurrent" value="1" /></label>
+                    <label>Alvo<input type="number" min="1" max="10" id="compassBurstTarget" value="8" /></label>
+                  </div>
+                </div>
+              </fieldset>
+
+              <fieldset>
+                <legend>Ritmo</legend>
+                <div class="field-row three">
+                  <label>Resina por dia<input type="number" min="20" max="200" id="compassDailyResin" data-persist="compassDailyResin" value="180" /></label>
+                  <label>Mora por Linha Ley<input type="number" min="1" id="compassMoraPerLey" data-persist="compassMoraPerLey" value="60000" /></label>
+                  <label>Dias visíveis<input type="number" min="3" max="60" id="compassVisibleDays" data-persist="compassVisibleDays" value="21" /></label>
+                </div>
+              </fieldset>
+
+              <div class="builder-actions">
+                <button class="primary-button" type="button" id="addCompassGoal">Adicionar objetivo</button>
+                <button class="ghost-button" type="button" id="clearCompassGoals">Limpar objetivos</button>
+              </div>
+            </form>
+
+            <div class="results-surface compass-results">
+              <div class="result-summary" id="compassSummary"></div>
+              <div class="compass-goal-list" id="compassGoalList"></div>
+            </div>
+          </div>
+
+          <div class="compass-dashboard">
+            <section class="results-surface">
+              <div class="section-title-row">
+                <div>
+                  <p class="eyebrow">Rota de resina</p>
+                  <h3>Agenda dos próximos dias</h3>
+                </div>
+                <span class="badge" id="compassPlanBadge">Sem objetivos</span>
+              </div>
+              <div class="agenda-list" id="compassAgenda"></div>
+            </section>
+
+            <section class="results-surface">
+              <div class="section-title-row">
+                <div>
+                  <p class="eyebrow">Materiais</p>
+                  <h3>O que falta farmar</h3>
+                </div>
+                <span class="badge">Personagens e talentos</span>
+              </div>
+              <div class="result-list" id="compassMaterials"></div>
+            </section>
+          </div>
+
+          <section class="results-surface artifact-planner">
+            <div class="section-title-row">
+              <div>
+                <p class="eyebrow">Artefatos e status</p>
+                <h3>Simulação do personagem selecionado</h3>
+              </div>
+              <span class="badge" id="artifactStatusBadge">Base estimada</span>
+            </div>
+
+            <div class="artifact-grid">
+              <form class="artifact-stat-form" id="artifactStatForm">
+                <label>
+                  Personagem
+                  <select id="artifactCharacterSelect"></select>
+                </label>
+                <div class="field-row three">
+                  <label>ATQ arma<input type="number" min="0" id="artifactWeaponAtk" data-persist="artifactWeaponAtk" value="0" /></label>
+                  <label>Vida plana<input type="number" min="0" id="artifactFlatHp" data-persist="artifactFlatHp" value="4780" /></label>
+                  <label>ATQ plano<input type="number" min="0" id="artifactFlatAtk" data-persist="artifactFlatAtk" value="311" /></label>
+                </div>
+                <div class="field-row three">
+                  <label>DEF plana<input type="number" min="0" id="artifactFlatDef" data-persist="artifactFlatDef" value="0" /></label>
+                  <label>Vida %<input type="number" min="0" step="0.1" id="artifactHpPct" data-persist="artifactHpPct" value="46.6" /></label>
+                  <label>ATQ %<input type="number" min="0" step="0.1" id="artifactAtkPct" data-persist="artifactAtkPct" value="46.6" /></label>
+                </div>
+                <div class="field-row three">
+                  <label>DEF %<input type="number" min="0" step="0.1" id="artifactDefPct" data-persist="artifactDefPct" value="0" /></label>
+                  <label>Proficiência<input type="number" min="0" id="artifactEm" data-persist="artifactEm" value="0" /></label>
+                  <label>Recarga %<input type="number" min="0" step="0.1" id="artifactEr" data-persist="artifactEr" value="0" /></label>
+                </div>
+                <div class="field-row three">
+                  <label>Taxa CRIT %<input type="number" min="0" step="0.1" id="artifactCritRate" data-persist="artifactCritRate" value="31.1" /></label>
+                  <label>Dano CRIT %<input type="number" min="0" step="0.1" id="artifactCritDmg" data-persist="artifactCritDmg" value="62.2" /></label>
+                  <label>Bônus elemental %<input type="number" min="0" step="0.1" id="artifactDmgBonus" data-persist="artifactDmgBonus" value="46.6" /></label>
+                </div>
+              </form>
+
+              <div>
+                <div class="result-summary" id="artifactStatSummary"></div>
+                <div class="artifact-recommendation" id="artifactRecommendation"></div>
+              </div>
+            </div>
+          </section>
         </section>
 
         <section class="tab-panel" id="personagem" aria-labelledby="personagem-title">
@@ -701,7 +845,7 @@
           </div>
         </section>
 
-        <section class="tab-panel active" id="guia" aria-labelledby="guia-title">
+        <section class="tab-panel" id="guia" aria-labelledby="guia-title">
           <div class="panel-heading">
             <div>
               <p class="eyebrow">Rotina e mapa</p>

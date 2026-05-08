@@ -1414,6 +1414,7 @@ const state = {
   characters: FALLBACK_CHARACTERS,
   weapons: FALLBACK_WEAPONS,
   roster: [],
+  compassGoals: [],
   guideDaily: {},
   guideQuests: {},
   plans: {
@@ -2564,6 +2565,7 @@ async function loadApiData() {
     populateSelect($("#characterSelect"), state.characters, "Genérico", displayCharacterName);
     populateTeamBuilderSelects();
     populateRosterCharacterSelect();
+    populateCompassCharacterSelects();
     populateSelect($("#weaponSelect"), state.weapons, "Genérica", displayWeaponName);
     restorePersisted();
     migratePersistedLanguage();
@@ -2572,11 +2574,13 @@ async function loadApiData() {
     evaluateCustomTeam();
     renderRoster();
     renderGuide();
+    renderCompass();
     setApiStatus(characterResult.status === "fulfilled" ? "online" : "offline", characterResult.status === "fulfilled" ? "API conectada" : "API parcial");
   } catch (error) {
     populateSelect($("#characterSelect"), state.characters, "Genérico", displayCharacterName);
     populateTeamBuilderSelects();
     populateRosterCharacterSelect();
+    populateCompassCharacterSelects();
     populateSelect($("#weaponSelect"), state.weapons, "Genérica", displayWeaponName);
     restorePersisted();
     migratePersistedLanguage();
@@ -2585,6 +2589,7 @@ async function loadApiData() {
     evaluateCustomTeam();
     renderRoster();
     renderGuide();
+    renderCompass();
     setApiStatus("offline", "API sem conexão");
   }
 }
@@ -2595,6 +2600,7 @@ function collectPersisted() {
     values[field.id] = field.value;
   });
   values.__roster = state.roster || [];
+  values.__compassGoals = state.compassGoals || [];
   values.__guideDaily = state.guideDaily || {};
   values.__guideQuests = state.guideQuests || {};
   return values;
@@ -2607,6 +2613,9 @@ function restorePersisted() {
     const values = JSON.parse(raw);
     if (Array.isArray(values.__roster)) {
       state.roster = values.__roster;
+    }
+    if (Array.isArray(values.__compassGoals)) {
+      state.compassGoals = values.__compassGoals;
     }
     if (values.__guideDaily && typeof values.__guideDaily === "object" && !Array.isArray(values.__guideDaily)) {
       state.guideDaily = values.__guideDaily;
@@ -2973,6 +2982,462 @@ function renderGuide() {
 
   renderResults($("#guideTips"), tips);
   renderQuestGuide();
+}
+
+const COMPASS_CAPS = [20, 40, 50, 60, 70, 80, 90];
+
+const TALENT_BOOK_SCHEDULE = [
+  { keys: ["liberdade", "freedom", "prosperidade", "prosperity", "transitoriedade", "transience", "admoestacao", "admonition", "equidade", "equity", "contenda", "contention", "luar", "moonlight"], days: [1, 4, 0], label: "Segunda, quinta e domingo" },
+  { keys: ["resistencia", "resistance", "diligencia", "diligence", "elegancia", "elegance", "engenhosidade", "ingenuity", "justica", "justice", "ignicao", "kindling", "elisio", "elysium"], days: [2, 5, 0], label: "Terça, sexta e domingo" },
+  { keys: ["poesia", "ballad", "ouro", "gold", "luz", "light", "praxis", "ordem", "order", "conflito", "conflict", "vadiagem", "vagrancy"], days: [3, 6, 0], label: "Quarta, sábado e domingo" },
+];
+
+function normalizedCompassKey(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+function characterById(id) {
+  return state.characters.find((character) => character.id === id);
+}
+
+function inferCharacterCap(level) {
+  const value = clamp(integer(level), 1, 90);
+  if (value <= 20) return 20;
+  if (value <= 40) return 40;
+  if (value <= 50) return 50;
+  if (value <= 60) return 60;
+  if (value <= 70) return 70;
+  if (value <= 80) return 80;
+  return 90;
+}
+
+function fillCapOptions(select, selected = 90) {
+  if (!select) return;
+  select.replaceChildren();
+  COMPASS_CAPS.forEach((cap) => {
+    const option = document.createElement("option");
+    option.value = String(cap);
+    option.textContent = String(cap);
+    if (cap === selected) option.selected = true;
+    select.append(option);
+  });
+}
+
+function populateCompassCharacterSelects() {
+  if ($("#compassCharacterSelect")) {
+    populateSelect($("#compassCharacterSelect"), state.characters, "Escolha um personagem", displayCharacterName);
+  }
+  if ($("#artifactCharacterSelect")) {
+    const previous = $("#artifactCharacterSelect").value;
+    populateSelect($("#artifactCharacterSelect"), state.characters, "Escolha um personagem", displayCharacterName);
+    const firstGoal = state.compassGoals[0]?.characterId;
+    if (previous) $("#artifactCharacterSelect").value = previous;
+    else if (firstGoal) $("#artifactCharacterSelect").value = firstGoal;
+  }
+}
+
+function talentTotalsBetween(current, target) {
+  const start = clamp(integer(current), 1, 10);
+  const end = clamp(integer(target), start, 10);
+  const total = {};
+  for (let level = start + 1; level <= end; level += 1) {
+    addTotals(total, TALENT_COSTS[level] || {});
+  }
+  return total;
+}
+
+function compassMaterialNames(character) {
+  const preset = characterMaterialPreset(character) || {};
+  const element = keyForName(character?.vision);
+  return {
+    gem: ELEMENT_GEMS[element] || "Gema elemental",
+    boss: preset.boss || "Material de chefe normal",
+    specialty: preset.specialty || "Especialidade local",
+    common: preset.common || "Material de monstro",
+    talentBook: preset.talentBook || "Livro de talento",
+    talentCommon: preset.talentCommon || preset.common || "Material de monstro",
+    weekly: preset.weekly || "Material de chefe semanal",
+  };
+}
+
+function compassGoalFromForm() {
+  const character = characterById($("#compassCharacterSelect")?.value);
+  if (!character) return null;
+
+  const currentLevel = clamp(integer($("#compassCurrentLevel").value), 1, 90);
+  const targetLevel = clamp(integer($("#compassTargetLevel").value), currentLevel, 90);
+  const currentCap = clamp(integer($("#compassCurrentCap").value) || inferCharacterCap(currentLevel), 20, 90);
+  const targetCap = clamp(
+    Math.max(integer($("#compassTargetCap").value) || inferCharacterCap(targetLevel), currentCap, inferCharacterCap(targetLevel)),
+    currentCap,
+    90,
+  );
+
+  return {
+    characterId: character.id,
+    createdAt: Date.now(),
+    currentLevel,
+    targetLevel,
+    currentCap,
+    targetCap,
+    talents: {
+      normal: {
+        current: clamp(integer($("#compassNormalCurrent").value), 1, 10),
+        target: clamp(integer($("#compassNormalTarget").value), 1, 10),
+      },
+      skill: {
+        current: clamp(integer($("#compassSkillCurrent").value), 1, 10),
+        target: clamp(integer($("#compassSkillTarget").value), 1, 10),
+      },
+      burst: {
+        current: clamp(integer($("#compassBurstCurrent").value), 1, 10),
+        target: clamp(integer($("#compassBurstTarget").value), 1, 10),
+      },
+    },
+  };
+}
+
+function addCompassGoal() {
+  const goal = compassGoalFromForm();
+  if (!goal) return;
+  const existing = state.compassGoals.findIndex((item) => item.characterId === goal.characterId);
+  if (existing >= 0) state.compassGoals[existing] = { ...state.compassGoals[existing], ...goal };
+  else state.compassGoals.push(goal);
+  savePersisted();
+  renderCompass();
+}
+
+function removeCompassGoal(characterId) {
+  state.compassGoals = state.compassGoals.filter((goal) => goal.characterId !== characterId);
+  savePersisted();
+  renderCompass();
+}
+
+function clearCompassGoals() {
+  state.compassGoals = [];
+  savePersisted();
+  renderCompass();
+}
+
+function calculateCompassGoal(goal) {
+  const character = characterById(goal.characterId);
+  if (!character) return null;
+  const names = compassMaterialNames(character);
+  const expNeeded = Math.max(0, CHARACTER_EXP[goal.targetLevel] - CHARACTER_EXP[goal.currentLevel]);
+  const books = optimizeItems(expNeeded, [
+    { key: "hero", value: 20000 },
+    { key: "adventurer", value: 5000 },
+    { key: "wanderer", value: 1000 },
+  ]);
+  const levelMora = Math.ceil(books.provided / 5);
+  const ascension = {};
+  CHAR_ASCENSION.filter((phase) => phase.cap > goal.currentCap && phase.cap <= goal.targetCap).forEach((phase) =>
+    addTotals(ascension, phase),
+  );
+
+  const talentTotals = {};
+  ["normal", "skill", "burst"].forEach((talent) => {
+    addTotals(talentTotals, talentTotalsBetween(goal.talents[talent].current, goal.talents[talent].target));
+  });
+
+  const materials = [
+    makeMaterial(`${names.gem} - Lasca`, ascension.gem1, 0, "1", "violet", "Gema T1"),
+    makeMaterial(`${names.gem} - Fragmento`, ascension.gem2, 0, "2", "violet", "Gema T2"),
+    makeMaterial(`${names.gem} - Pedaço`, ascension.gem3, 0, "3", "violet", "Gema T3"),
+    makeMaterial(`${names.gem} - Gema`, ascension.gem4, 0, "4", "violet", "Gema T4"),
+    makeMaterial(names.boss, ascension.boss, 0, "B", "coral", "Chefe normal"),
+    makeMaterial(names.specialty, ascension.specialty, 0, "S", "leaf", "Especialidade local"),
+    makeMaterial(`${names.common} T1`, ascension.common1, 0, "1", "teal", "Monstro comum"),
+    makeMaterial(`${names.common} T2`, ascension.common2, 0, "2", "teal", "Monstro comum"),
+    makeMaterial(`${names.common} T3`, ascension.common3, 0, "3", "teal", "Monstro comum"),
+    makeMaterial("EXP de Herói", books.counts.hero, 0, "H", "gold", `${format(expNeeded)} EXP`),
+    makeMaterial("EXP de Aventureiro", books.counts.adventurer, 0, "A", "gold", `${format(books.waste)} EXP sobra`),
+    makeMaterial("Conselho do Andarilho", books.counts.wanderer, 0, "W", "gold", `${format(books.provided)} EXP usado`),
+    makeMaterial(`${names.talentBook} - Ensinamentos`, talentTotals.teachings, 0, "E", "violet", "Livro T1"),
+    makeMaterial(`${names.talentBook} - Guia`, talentTotals.guide, 0, "G", "violet", "Livro T2"),
+    makeMaterial(`${names.talentBook} - Filosofias`, talentTotals.philosophies, 0, "F", "violet", "Livro T3"),
+    makeMaterial(`${names.talentCommon} T1`, talentTotals.common1, 0, "1", "teal", "Monstro comum"),
+    makeMaterial(`${names.talentCommon} T2`, talentTotals.common2, 0, "2", "teal", "Monstro comum"),
+    makeMaterial(`${names.talentCommon} T3`, talentTotals.common3, 0, "3", "teal", "Monstro comum"),
+    makeMaterial(names.weekly, talentTotals.weekly, 0, "W", "coral", "Boss semanal"),
+    makeMaterial("Coroa do Conhecimento", talentTotals.crown, 0, "C", "gold", "Nível 10"),
+    makeMaterial("Mora", (ascension.mora || 0) + levelMora + (talentTotals.mora || 0), 0, "M", "gold", "Nível, ascensão e talentos"),
+  ];
+
+  const talentBookUnits = (talentTotals.teachings || 0) + (talentTotals.guide || 0) * 3 + (talentTotals.philosophies || 0) * 9;
+  return {
+    goal,
+    character,
+    names,
+    materials,
+    totals: {
+      mora: (ascension.mora || 0) + levelMora + (talentTotals.mora || 0),
+      bossDrops: ascension.boss || 0,
+      weekly: talentTotals.weekly || 0,
+      talentBookUnits,
+      heroWit: books.counts.hero || 0,
+      ascensions: CHAR_ASCENSION.filter((phase) => phase.cap > goal.currentCap && phase.cap <= goal.targetCap).length,
+    },
+  };
+}
+
+function aggregateCompassMaterials(calculatedGoals) {
+  const map = new Map();
+  calculatedGoals.forEach((entry) => {
+    entry.materials.forEach((material) => {
+      if (!material.total) return;
+      const key = `${material.label}|${material.note}`;
+      const current = map.get(key) || { ...material, total: 0, missing: 0, owned: 0 };
+      current.total += material.total;
+      current.missing += material.missing;
+      map.set(key, current);
+    });
+  });
+  return [...map.values()].sort((a, b) => b.missing - a.missing || a.label.localeCompare(b.label, "pt-BR"));
+}
+
+function talentBookSchedule(bookName) {
+  const normalized = normalizedCompassKey(bookName);
+  return TALENT_BOOK_SCHEDULE.find((item) => item.keys.some((key) => normalized.includes(normalizedCompassKey(key))));
+}
+
+function isTalentBookAvailable(bookName, date) {
+  const schedule = talentBookSchedule(bookName);
+  if (!schedule) return true;
+  return schedule.days.includes(date.getDay());
+}
+
+function compassWorkloads(calculatedGoals) {
+  const moraPerLey = Math.max(1, read("#compassMoraPerLey") || 60000);
+  const workloads = [];
+  calculatedGoals.forEach((entry) => {
+    const name = displayCharacterName(entry.character);
+    const bossRuns = Math.ceil((entry.totals.bossDrops || 0) / 2.5);
+    const talentRuns = Math.ceil((entry.totals.talentBookUnits || 0) / 8);
+    const expRuns = Math.ceil((entry.totals.heroWit || 0) / 4.5);
+    const moraRuns = Math.ceil((entry.totals.mora || 0) / moraPerLey);
+    const weeklyRuns = Math.ceil(entry.totals.weekly || 0);
+    if (weeklyRuns) workloads.push({ type: "weekly", title: "Chefe semanal", detail: `${name}: ${entry.names.weekly}`, runs: weeklyRuns, resin: 30, color: "coral" });
+    if (bossRuns) workloads.push({ type: "boss", title: "Chefe normal", detail: `${name}: ${entry.names.boss}`, runs: bossRuns, resin: 40, color: "coral" });
+    if (talentRuns) workloads.push({ type: "talent", title: "Domínio de talento", detail: `${name}: ${entry.names.talentBook}`, runs: talentRuns, resin: 20, color: "violet", book: entry.names.talentBook });
+    if (expRuns) workloads.push({ type: "exp", title: "Linha Ley de EXP", detail: `${name}: livros de EXP`, runs: expRuns, resin: 20, color: "teal" });
+    if (moraRuns) workloads.push({ type: "mora", title: "Linha Ley de Mora", detail: `${name}: Mora`, runs: moraRuns, resin: 20, color: "gold" });
+  });
+  return workloads;
+}
+
+function buildCompassAgenda(calculatedGoals) {
+  const dailyResin = clamp(read("#compassDailyResin") || 180, 20, 200);
+  const visibleDays = clamp(integer($("#compassVisibleDays")?.value) || 21, 3, 60);
+  const workloads = compassWorkloads(calculatedGoals).map((item) => ({ ...item }));
+  const agenda = [];
+  const today = new Date();
+
+  for (let offset = 0; offset < visibleDays && workloads.some((item) => item.runs > 0); offset += 1) {
+    const date = new Date(today);
+    date.setDate(today.getDate() + offset);
+    let resinLeft = dailyResin;
+    const tasks = [];
+
+    while (resinLeft >= 20 && workloads.some((item) => item.runs > 0)) {
+      const task = workloads.find((item) => {
+        if (item.runs <= 0 || item.resin > resinLeft) return false;
+        if (item.type === "talent") return isTalentBookAvailable(item.book, date);
+        return true;
+      });
+      if (!task) {
+        const talentPending = workloads.find((item) => item.type === "talent" && item.runs > 0);
+        if (talentPending && resinLeft >= 40) {
+          tasks.push({
+            title: "Condensar resina",
+            detail: `${talentPending.book}: ${talentBookSchedule(talentPending.book)?.label || "domínio de talento"}`,
+            runs: Math.floor(resinLeft / 40),
+            resin: Math.floor(resinLeft / 40) * 40,
+            color: "violet",
+          });
+        }
+        resinLeft = 0;
+        break;
+      }
+
+      const runs = Math.max(1, Math.min(task.runs, Math.floor(resinLeft / task.resin)));
+      task.runs -= runs;
+      resinLeft -= runs * task.resin;
+      tasks.push({ ...task, runs, resin: runs * task.resin });
+    }
+
+    if (tasks.length) {
+      agenda.push({ date, resin: dailyResin - resinLeft, tasks });
+    }
+  }
+
+  return { agenda, workloads };
+}
+
+function renderCompassGoals(calculatedGoals) {
+  const list = $("#compassGoalList");
+  if (!list) return;
+  list.replaceChildren();
+  if (!calculatedGoals.length) {
+    list.innerHTML = `<div class="empty-state"><strong>Nenhum objetivo definido</strong><span>Escolha um personagem, configure nível e talentos, depois adicione à agenda.</span></div>`;
+    return;
+  }
+
+  calculatedGoals.forEach((entry) => {
+    const card = document.createElement("article");
+    card.className = "compass-goal-card";
+    const talents = entry.goal.talents;
+    card.innerHTML = `
+      <div>
+        <strong>${escapeHtml(displayCharacterName(entry.character))}</strong>
+        <span>Nv ${format(entry.goal.currentLevel)} → ${format(entry.goal.targetLevel)} · Talentos ${format(talents.normal.current)}/${format(talents.skill.current)}/${format(talents.burst.current)} → ${format(talents.normal.target)}/${format(talents.skill.target)}/${format(talents.burst.target)}</span>
+      </div>
+      <button class="small-button" type="button" data-remove-compass="${escapeHtml(entry.goal.characterId)}">Remover</button>
+    `;
+    list.append(card);
+  });
+}
+
+function renderCompassAgenda(agenda) {
+  const container = $("#compassAgenda");
+  if (!container) return;
+  container.replaceChildren();
+  if (!agenda.length) {
+    container.innerHTML = `<div class="empty-state"><strong>Agenda vazia</strong><span>Adicione pelo menos um objetivo para gerar a rota de resina.</span></div>`;
+    return;
+  }
+
+  agenda.forEach((day, index) => {
+    const card = document.createElement("article");
+    card.className = "agenda-card";
+    const dateLabel = new Intl.DateTimeFormat("pt-BR", { weekday: "short", day: "2-digit", month: "2-digit" }).format(day.date);
+    card.innerHTML = `
+      <div class="agenda-day">
+        <span>Dia ${index + 1}</span>
+        <strong>${escapeHtml(dateLabel)}</strong>
+        <em>${format(day.resin)} resina</em>
+      </div>
+      <div class="agenda-tasks">
+        ${day.tasks
+          .map(
+            (task) => `
+              <div class="agenda-task ${escapeHtml(task.color || "teal")}">
+                <strong>${escapeHtml(task.title)} · ${format(task.runs)}x</strong>
+                <span>${escapeHtml(ptBr(task.detail))}</span>
+              </div>
+            `,
+          )
+          .join("")}
+      </div>
+    `;
+    container.append(card);
+  });
+}
+
+function estimateCharacterBaseStats(character, level = 90) {
+  const rarity = character?.rarity === 4 ? 4 : 5;
+  const weaponKey = keyForName(character?.weapon);
+  const levelRatio = 0.38 + (clamp(level, 1, 90) / 90) * 0.62;
+  const weaponStats = {
+    sword: { hp: 11800, atk: 315, def: 720 },
+    claymore: { hp: 12200, atk: 330, def: 760 },
+    polearm: { hp: 11900, atk: 325, def: 735 },
+    bow: { hp: 10800, atk: 335, def: 650 },
+    catalyst: { hp: 10600, atk: 340, def: 630 },
+  };
+  const base = weaponStats[weaponKey] || { hp: 11200, atk: 320, def: 690 };
+  const rarityFactor = rarity === 5 ? 1 : 0.9;
+  const stats = {
+    hp: Math.round(base.hp * rarityFactor * levelRatio),
+    atk: Math.round(base.atk * rarityFactor * levelRatio),
+    def: Math.round(base.def * rarityFactor * levelRatio),
+    source: "estimado",
+  };
+  const directStats = character?.stats || character?.baseStats || {};
+  const apiHp = number(directStats.hp_90 || directStats.hp90 || directStats.hp || character?.baseHp);
+  const apiAtk = number(directStats.attack_90 || directStats.atk90 || directStats.attack || directStats.atk || character?.baseAttack);
+  const apiDef = number(directStats.defense_90 || directStats.def90 || directStats.defense || directStats.def || character?.baseDefense);
+  if (apiHp && apiAtk && apiDef) {
+    return { hp: apiHp, atk: apiAtk, def: apiDef, source: "api" };
+  }
+  return stats;
+}
+
+function renderArtifactStats() {
+  const select = $("#artifactCharacterSelect");
+  const character = characterById(select?.value) || characterById(state.compassGoals[0]?.characterId);
+  const summary = $("#artifactStatSummary");
+  const recommendation = $("#artifactRecommendation");
+  if (!summary || !recommendation) return;
+  if (!character) {
+    renderSummary(summary, [
+      { label: "Vida", value: "0", color: "teal" },
+      { label: "Ataque", value: "0", color: "gold" },
+      { label: "Defesa", value: "0", color: "violet" },
+    ]);
+    recommendation.innerHTML = `<div class="empty-state"><strong>Sem personagem</strong><span>Adicione um objetivo ou escolha um personagem para simular artefatos.</span></div>`;
+    return;
+  }
+
+  const goal = state.compassGoals.find((item) => item.characterId === character.id);
+  const base = estimateCharacterBaseStats(character, goal?.targetLevel || 90);
+  const weaponAtk = read("#artifactWeaponAtk");
+  const hp = Math.round(base.hp * (1 + read("#artifactHpPct") / 100) + read("#artifactFlatHp"));
+  const atk = Math.round((base.atk + weaponAtk) * (1 + read("#artifactAtkPct") / 100) + read("#artifactFlatAtk"));
+  const def = Math.round(base.def * (1 + read("#artifactDefPct") / 100) + read("#artifactFlatDef"));
+  const em = Math.round(read("#artifactEm"));
+  const er = 100 + read("#artifactEr");
+  const critRate = 5 + read("#artifactCritRate");
+  const critDmg = 50 + read("#artifactCritDmg");
+  const dmgBonus = read("#artifactDmgBonus");
+  const rec = getArtifactRec(displayCharacterName(character), roleForCharacter(character), character);
+
+  $("#artifactStatusBadge").textContent = base.source === "api" ? "Base da API" : "Base estimada";
+  renderSummary(summary, [
+    { label: "Vida final", value: format(hp), color: "teal" },
+    { label: "ATQ final", value: format(atk), color: "gold" },
+    { label: "DEF final", value: format(def), color: "violet" },
+    { label: "Proficiência", value: format(em), color: "leaf" },
+    { label: "Recarga", value: `${er.toFixed(1).replace(".", ",")}%`, color: "teal" },
+    { label: "CRIT", value: `${critRate.toFixed(1).replace(".", ",")}/${critDmg.toFixed(1).replace(".", ",")}`, color: "coral" },
+  ]);
+  recommendation.innerHTML = `
+    <article class="artifact-rec-card">
+      <strong>${escapeHtml(displayCharacterName(character))}</strong>
+      <span>${escapeHtml(displayCharacterMetaPart(character.vision))} · ${escapeHtml(displayWeaponType(character.weapon))}</span>
+      <div><b>Set:</b> ${escapeHtml(ptBr(rec.set))}</div>
+      <div><b>Atributos:</b> ${escapeHtml(ptBr(rec.stats))}</div>
+      <div><b>Subatributos:</b> ${escapeHtml(ptBr(rec.substats))}</div>
+      <div><b>Bônus elemental informado:</b> ${escapeHtml(dmgBonus.toFixed(1).replace(".", ","))}%</div>
+    </article>
+  `;
+}
+
+function renderCompass() {
+  if (!$("#bussola")) return;
+  const calculatedGoals = state.compassGoals.map(calculateCompassGoal).filter(Boolean);
+  const materials = aggregateCompassMaterials(calculatedGoals);
+  const totalMora = materials.find((item) => item.label === "Mora")?.missing || 0;
+  const { agenda } = buildCompassAgenda(calculatedGoals);
+  const totalResin = agenda.reduce((sum, day) => sum + day.resin, 0);
+
+  renderSummary($("#compassSummary"), [
+    { label: "Personagens", value: format(calculatedGoals.length), color: calculatedGoals.length ? "teal" : "gold" },
+    { label: "Resina planejada", value: format(totalResin), color: totalResin ? "coral" : "teal" },
+    { label: "Mora total", value: format(totalMora), color: totalMora ? "gold" : "teal" },
+  ]);
+  renderCompassGoals(calculatedGoals);
+  renderResults($("#compassMaterials"), materials);
+  renderCompassAgenda(agenda);
+  $("#compassHeroStats").innerHTML = `<span>${format(calculatedGoals.length)} personagens</span><strong>${format(totalResin)} resina</strong>`;
+  $("#compassPlanBadge").textContent = agenda.length ? `${format(agenda.length)} dias planejados` : "Sem objetivos";
+  if ($("#artifactCharacterSelect") && !$("#artifactCharacterSelect").value && state.compassGoals[0]?.characterId) {
+    $("#artifactCharacterSelect").value = state.compassGoals[0].characterId;
+  }
+  renderArtifactStats();
 }
 
 function buildGenericTeams(character) {
@@ -4188,9 +4653,37 @@ function calculateAll() {
   evaluateCustomTeam();
   updateGlobalTotals();
   renderGuide();
+  renderCompass();
 }
 
 function exportPlan() {
+  const compassGoals = state.compassGoals.map(calculateCompassGoal).filter(Boolean);
+  if (compassGoals.length) {
+    const materials = aggregateCompassMaterials(compassGoals);
+    const { agenda } = buildCompassAgenda(compassGoals);
+    const lines = [
+      "CalcTeyvat - agenda da bussola",
+      "",
+      "OBJETIVOS",
+      ...compassGoals.map((entry) => {
+        const talents = entry.goal.talents;
+        return `- ${displayCharacterName(entry.character)}: Nv ${entry.goal.currentLevel} -> ${entry.goal.targetLevel}; talentos ${talents.normal.current}/${talents.skill.current}/${talents.burst.current} -> ${talents.normal.target}/${talents.skill.target}/${talents.burst.target}`;
+      }),
+      "",
+      "AGENDA",
+    ];
+    agenda.forEach((day, index) => {
+      const dateLabel = new Intl.DateTimeFormat("pt-BR", { weekday: "short", day: "2-digit", month: "2-digit" }).format(day.date);
+      lines.push(`Dia ${index + 1} - ${dateLabel} - ${format(day.resin)} resina`);
+      day.tasks.forEach((task) => lines.push(`- ${task.title}: ${format(task.runs)}x (${task.detail})`));
+    });
+    lines.push("", "MATERIAIS");
+    materials.filter((item) => item.missing > 0).forEach((item) => lines.push(`- ${item.label}: ${format(item.missing)}`));
+    $("#exportText").value = lines.join("\n");
+    $("#exportDialog").showModal();
+    return;
+  }
+
   const selected = selectedCharacter();
   const weapon = selectedWeapon();
   const sectionLabels = {
@@ -4253,6 +4746,12 @@ function wireEvents() {
       savePersisted();
       calculateAll();
     }
+    if (event.target.id?.startsWith("compass")) {
+      renderCompass();
+    }
+    if (event.target.id?.startsWith("artifact")) {
+      renderArtifactStats();
+    }
   });
 
   document.addEventListener("change", (event) => {
@@ -4266,6 +4765,12 @@ function wireEvents() {
       savePersisted();
       renderQuestGuide();
       return;
+    }
+    if (event.target.id?.startsWith("compass")) {
+      renderCompass();
+    }
+    if (event.target.id?.startsWith("artifact")) {
+      renderArtifactStats();
     }
     if (event.target.id === "characterSelect") syncSelectedCharacter();
     if (event.target.id === "weaponSelect") syncSelectedWeapon();
@@ -4294,6 +4799,12 @@ function wireEvents() {
     window.location.reload();
   });
   $("#exportPlan").addEventListener("click", exportPlan);
+  $("#addCompassGoal").addEventListener("click", addCompassGoal);
+  $("#clearCompassGoals").addEventListener("click", clearCompassGoals);
+  $("#compassGoalList").addEventListener("click", (event) => {
+    const button = event.target.closest("button[data-remove-compass]");
+    if (button) removeCompassGoal(button.dataset.removeCompass);
+  });
   $("#fillResinFromPlan").addEventListener("click", fillResinFromPlan);
   $("#useSelectedInTeam").addEventListener("click", () => {
     const character = selectedCharacter();
@@ -4334,6 +4845,8 @@ function initStaticOptions() {
     "#talentSkillTarget",
     "#talentBurstTarget",
   ].forEach((selector) => fillLevelOptions($(selector), 1, 10, 10));
+  fillCapOptions($("#compassCurrentCap"), 20);
+  fillCapOptions($("#compassTargetCap"), 90);
   updateArtifactLevels();
 }
 
@@ -4343,6 +4856,7 @@ function init() {
   populateSelect($("#weaponSelect"), state.weapons, "Genérica", displayWeaponName);
   populateTeamBuilderSelects();
   populateRosterCharacterSelect();
+  populateCompassCharacterSelects();
   populateGuideFilters();
   wireTabs();
   wireEvents();
@@ -4353,6 +4867,7 @@ function init() {
   syncSelectedWeapon();
   calculateAll();
   renderRoster();
+  renderCompass();
   loadApiData();
 }
 

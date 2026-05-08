@@ -491,6 +491,11 @@ textarea:focus {
   gap: 18px;
 }
 
+.legacy-panel,
+.nav-tabs .tab-button:not([data-tab="bussola"]):not([data-tab="guia"]) {
+  display: none;
+}
+
 .badge {
   border: 1px solid var(--line);
   border-radius: 999px;
@@ -920,6 +925,201 @@ legend {
   grid-template-columns: minmax(330px, 0.9fr) minmax(360px, 1.1fr);
   gap: 16px;
   align-items: start;
+}
+
+.compass-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: end;
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(135deg, rgba(22, 115, 109, 0.14), rgba(200, 138, 22, 0.1)),
+    #ffffff;
+  box-shadow: var(--shadow);
+}
+
+.compass-hero h2,
+.section-title-row h3 {
+  margin: 0;
+}
+
+.compass-hero h2 {
+  font-size: 30px;
+  line-height: 1.12;
+}
+
+.compass-hero-stats {
+  min-width: 180px;
+  display: grid;
+  gap: 4px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.compass-hero-stats span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.compass-hero-stats strong {
+  font-size: 26px;
+}
+
+.compass-layout,
+.compass-dashboard,
+.artifact-grid {
+  display: grid;
+  gap: 18px;
+}
+
+.compass-layout {
+  grid-template-columns: minmax(360px, 0.88fr) minmax(0, 1.12fr);
+  align-items: start;
+}
+
+.compass-dashboard {
+  grid-template-columns: minmax(0, 1.2fr) minmax(340px, 0.8fr);
+  align-items: start;
+}
+
+.artifact-grid {
+  grid-template-columns: minmax(360px, 0.95fr) minmax(0, 1.05fr);
+}
+
+.artifact-stat-form {
+  display: grid;
+  gap: 12px;
+}
+
+.section-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.compass-goal-list,
+.agenda-list {
+  display: grid;
+  gap: 10px;
+}
+
+.compass-goal-card,
+.agenda-card,
+.artifact-rec-card,
+.empty-state {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fbfdfc;
+}
+
+.compass-goal-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+}
+
+.compass-goal-card strong,
+.compass-goal-card span {
+  display: block;
+}
+
+.compass-goal-card span {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.agenda-card {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.agenda-day {
+  display: grid;
+  gap: 4px;
+  align-content: center;
+  padding: 14px;
+  background: #eef5f2;
+  border-right: 1px solid var(--line);
+}
+
+.agenda-day span,
+.agenda-day em {
+  color: var(--muted);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 850;
+}
+
+.agenda-day strong {
+  font-size: 18px;
+}
+
+.agenda-tasks {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+}
+
+.agenda-task {
+  border-left: 4px solid var(--teal);
+  padding: 8px 10px;
+  background: #ffffff;
+}
+
+.agenda-task.gold {
+  border-left-color: var(--gold);
+}
+
+.agenda-task.coral {
+  border-left-color: var(--coral);
+}
+
+.agenda-task.violet {
+  border-left-color: var(--violet);
+}
+
+.agenda-task.leaf {
+  border-left-color: var(--leaf);
+}
+
+.agenda-task strong,
+.agenda-task span,
+.artifact-rec-card strong,
+.artifact-rec-card span {
+  display: block;
+}
+
+.agenda-task span,
+.artifact-rec-card span {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.artifact-rec-card,
+.empty-state {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+}
+
+.artifact-rec-card div {
+  line-height: 1.45;
+}
+
+.empty-state {
+  color: var(--muted);
 }
 
 .guide-grid {
@@ -1487,6 +1687,12 @@ textarea {
     grid-template-columns: 1fr;
   }
 
+  .compass-layout,
+  .compass-dashboard,
+  .artifact-grid {
+    grid-template-columns: 1fr;
+  }
+
   #elenco .builder-grid {
     grid-template-columns: 1fr;
   }
@@ -1558,6 +1764,33 @@ textarea {
 
   .hero-copy h2 {
     font-size: 32px;
+  }
+
+  .compass-hero {
+    grid-template-columns: 1fr;
+    padding: 18px;
+  }
+
+  .compass-hero h2 {
+    font-size: 26px;
+  }
+
+  .compass-hero-stats {
+    min-width: 0;
+  }
+
+  .section-title-row {
+    display: grid;
+  }
+
+  .agenda-card,
+  .compass-goal-card {
+    grid-template-columns: 1fr;
+  }
+
+  .agenda-day {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
   }
 
   .hero-band .portrait-card {
