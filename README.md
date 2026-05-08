@@ -20,7 +20,7 @@ Depois acesse:
 http://127.0.0.1:5173
 ```
 
-Tambem funciona abrindo `index.html` diretamente no navegador, mas o servidor local costuma evitar bloqueios de API e imagens.
+Tambem funciona abrindo `index.html` diretamente no navegador, mas o servidor local costuma ocorrer bloqueios de API e imagens.
 
 ## Recursos
 
