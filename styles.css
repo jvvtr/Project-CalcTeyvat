@@ -15,8 +15,8 @@
   --shadow: 0 24px 64px rgba(13, 76, 70, 0.14);
   --radius: 8px;
   font-family:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    sans-serif;
+    Aptos, "Segoe UI Variable", Inter, ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 * {
@@ -50,6 +50,7 @@ body::before {
     linear-gradient(58deg, transparent 0 72%, rgba(228, 163, 58, 0.12) 72% 73%, transparent 73% 100%);
   background-size: 190px 190px, 230px 230px;
   opacity: 0.72;
+  animation: page-lines 22s linear infinite;
 }
 
 button,
@@ -262,6 +263,7 @@ img {
   margin: 0;
   font-size: 30px;
   line-height: 1.15;
+  font-weight: 850;
 }
 
 .panel-heading h2 {
@@ -1071,7 +1073,7 @@ legend {
   gap: 18px;
   align-items: end;
   min-height: 260px;
-  padding: 28px;
+  padding: 32px;
   border: 1px solid rgba(255, 255, 255, 0.64);
   border-radius: var(--radius);
   background:
@@ -1152,7 +1154,9 @@ legend {
   inset: auto 0 0;
   height: 5px;
   background: linear-gradient(90deg, var(--teal), var(--gold), var(--coral), var(--violet));
+  background-size: 200% 100%;
   z-index: 2;
+  animation: hero-prism 7s linear infinite;
 }
 
 .compass-hero h2,
@@ -1161,9 +1165,10 @@ legend {
 }
 
 .compass-hero h2 {
-  font-size: clamp(30px, 4vw, 48px);
+  font-size: clamp(34px, 4.4vw, 56px);
   line-height: 1.05;
   max-width: 820px;
+  font-weight: 900;
 }
 
 .compass-hero-caption {
@@ -1184,11 +1189,29 @@ legend {
   background: rgba(255, 255, 252, 0.78);
   backdrop-filter: blur(14px);
   box-shadow: 0 18px 40px rgba(7, 43, 40, 0.16);
+  overflow: hidden;
+  position: relative;
+}
+
+.compass-hero-stats::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.34), transparent);
+  transform: translateX(-110%);
+  animation: glass-shine 6s ease-in-out infinite;
 }
 
 .compass-hero.has-art .compass-hero-stats {
   background: rgba(255, 248, 237, 0.18);
   color: #fff8ed;
+}
+
+.compass-hero-stats span,
+.compass-hero-stats strong {
+  position: relative;
+  z-index: 1;
 }
 
 .compass-hero-stats span {
@@ -1235,6 +1258,31 @@ legend {
   gap: 14px;
 }
 
+.priority-header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid rgba(203, 222, 216, 0.72);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(135deg, rgba(17, 157, 142, 0.08), rgba(228, 163, 58, 0.08)),
+    rgba(255, 255, 252, 0.72);
+}
+
+.priority-header h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.priority-header span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 850;
+  text-align: right;
+}
+
 .compass-goal-list,
 .agenda-list {
   display: grid;
@@ -1253,13 +1301,19 @@ legend {
 
 .compass-goal-card {
   display: grid;
-  grid-template-columns: 58px minmax(0, 1fr) auto;
+  grid-template-columns: 64px 58px minmax(0, 1fr) auto;
   gap: 14px;
   align-items: center;
-  padding: 14px;
+  padding: 14px 14px 14px 16px;
   position: relative;
   overflow: hidden;
-  animation: panel-rise 360ms ease both;
+  animation: goal-rise 420ms ease both;
+  animation-delay: calc(var(--goal-index, 0) * 58ms);
+  box-shadow: 0 16px 34px rgba(13, 76, 70, 0.08);
+  transition:
+    border-color 170ms ease,
+    box-shadow 170ms ease,
+    transform 170ms ease;
 }
 
 .compass-goal-card::before {
@@ -1268,6 +1322,57 @@ legend {
   inset: 0 auto 0 0;
   width: 4px;
   background: linear-gradient(180deg, var(--teal), var(--gold));
+}
+
+.compass-goal-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(110deg, transparent 0 42%, rgba(255, 255, 255, 0.5) 50%, transparent 58% 100%);
+  opacity: 0;
+  transform: translateX(-32%);
+  transition:
+    opacity 170ms ease,
+    transform 500ms ease;
+  pointer-events: none;
+}
+
+.compass-goal-card:hover {
+  border-color: rgba(17, 157, 142, 0.46);
+  box-shadow: 0 22px 48px rgba(13, 76, 70, 0.14);
+  transform: translateY(-2px);
+}
+
+.compass-goal-card:hover::after {
+  opacity: 0.72;
+  transform: translateX(32%);
+}
+
+.goal-priority {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding: 8px 6px;
+  border: 1px solid rgba(17, 157, 142, 0.26);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(180deg, rgba(17, 157, 142, 0.12), rgba(228, 163, 58, 0.1)),
+    rgba(255, 255, 252, 0.7);
+}
+
+.goal-priority strong {
+  font-size: 24px;
+  line-height: 1;
+  color: var(--teal-dark);
+}
+
+.goal-priority span {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1;
+  text-transform: uppercase;
 }
 
 .compass-goal-avatar {
@@ -1287,6 +1392,11 @@ legend {
   line-height: 1.45;
 }
 
+.compass-goal-card .goal-priority span {
+  font-size: 10px;
+  line-height: 1;
+}
+
 .compass-goal-card em {
   color: var(--teal);
   display: block;
@@ -1296,12 +1406,48 @@ legend {
   margin-top: 6px;
 }
 
+.goal-actions {
+  display: grid;
+  grid-template-columns: repeat(2, 34px);
+  gap: 7px;
+  justify-items: stretch;
+}
+
+.goal-actions .small-button {
+  grid-column: 1 / -1;
+}
+
+.icon-button {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  min-height: 34px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 252, 0.96), rgba(238, 248, 247, 0.9));
+  color: var(--teal-dark);
+  font-size: 16px;
+  font-weight: 900;
+  box-shadow: 0 6px 16px rgba(13, 76, 70, 0.07);
+}
+
+.icon-button:hover:not(:disabled) {
+  border-color: var(--teal);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px rgba(13, 76, 70, 0.12);
+}
+
+.icon-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.38;
+}
+
 .character-progress {
   height: 9px;
   border-radius: 999px;
-  background: #dcebe7;
+  background:
+    linear-gradient(180deg, #dcebe7, #eef8f7);
   margin-top: 10px;
   overflow: hidden;
+  box-shadow: inset 0 1px 2px rgba(13, 76, 70, 0.12);
 }
 
 .character-progress span {
@@ -1320,13 +1466,16 @@ legend {
   grid-template-columns: 120px minmax(0, 1fr);
   overflow: hidden;
   animation: panel-rise 360ms ease both;
+  box-shadow: 0 14px 32px rgba(13, 76, 70, 0.075);
   transition:
     border-color 180ms ease,
+    box-shadow 180ms ease,
     transform 180ms ease;
 }
 
 .agenda-card:hover {
   border-color: rgba(228, 163, 58, 0.48);
+  box-shadow: 0 22px 48px rgba(13, 76, 70, 0.12);
   transform: translateY(-2px);
 }
 
@@ -1340,7 +1489,7 @@ legend {
   align-content: center;
   padding: 14px;
   background:
-    linear-gradient(180deg, rgba(17, 157, 142, 0.16), rgba(228, 163, 58, 0.1));
+    linear-gradient(180deg, rgba(17, 157, 142, 0.18), rgba(228, 163, 58, 0.12));
   border-right: 1px solid var(--line);
 }
 
@@ -1368,12 +1517,15 @@ legend {
   background: rgba(255, 255, 252, 0.9);
   border-radius: 6px;
   transition:
+    border-color 160ms ease,
     background 160ms ease,
+    box-shadow 160ms ease,
     transform 160ms ease;
 }
 
 .agenda-task:hover {
   background: #fff;
+  box-shadow: 0 10px 22px rgba(13, 76, 70, 0.08);
   transform: translateX(2px);
 }
 
@@ -1571,6 +1723,26 @@ legend {
   }
 }
 
+@keyframes goal-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes page-lines {
+  from {
+    background-position: 0 0, 0 0;
+  }
+  to {
+    background-position: 190px 190px, -230px 230px;
+  }
+}
+
 @keyframes hero-drift {
   from {
     transform: scale(1.01) translate3d(0, 0, 0);
@@ -1587,6 +1759,25 @@ legend {
   }
   100% {
     transform: translateX(24%);
+  }
+}
+
+@keyframes hero-prism {
+  from {
+    background-position: 0% 0;
+  }
+  to {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes glass-shine {
+  0%,
+  52% {
+    transform: translateX(-110%);
+  }
+  100% {
+    transform: translateX(110%);
   }
 }
 
@@ -2075,6 +2266,11 @@ legend {
   box-shadow: 0 10px 22px rgba(13, 76, 70, 0.12);
 }
 
+.small-button.danger:hover {
+  border-color: var(--coral);
+  color: #8c3425;
+}
+
 .member-avatar {
   width: 52px;
   height: 52px;
@@ -2324,9 +2520,41 @@ textarea {
     display: grid;
   }
 
+  .priority-header {
+    display: grid;
+  }
+
+  .priority-header span {
+    text-align: left;
+  }
+
   .agenda-card,
   .compass-goal-card {
     grid-template-columns: 1fr;
+  }
+
+  .compass-goal-card {
+    grid-template-columns: 58px minmax(0, 1fr);
+  }
+
+  .goal-priority,
+  .goal-actions {
+    grid-column: 1 / -1;
+  }
+
+  .goal-priority {
+    grid-template-columns: auto minmax(0, 1fr);
+    justify-items: start;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .goal-actions {
+    grid-template-columns: 42px 42px minmax(0, 1fr);
+  }
+
+  .goal-actions .small-button {
+    grid-column: auto;
   }
 
   .fixed-rules-grid,

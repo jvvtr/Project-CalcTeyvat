@@ -3133,6 +3133,17 @@ function removeCompassGoal(characterId) {
   renderCompass();
 }
 
+function moveCompassGoal(characterId, direction) {
+  const index = state.compassGoals.findIndex((goal) => goal.characterId === characterId);
+  if (index < 0) return;
+  const nextIndex = clamp(index + direction, 0, state.compassGoals.length - 1);
+  if (nextIndex === index) return;
+  const [goal] = state.compassGoals.splice(index, 1);
+  state.compassGoals.splice(nextIndex, 0, goal);
+  savePersisted();
+  renderCompass();
+}
+
 function clearCompassGoals() {
   state.compassGoals = [];
   savePersisted();
@@ -3349,13 +3360,19 @@ function renderCompassGoals(calculatedGoals) {
     return;
   }
 
-  calculatedGoals.forEach((entry) => {
+  calculatedGoals.forEach((entry, index) => {
     const card = document.createElement("article");
     card.className = "compass-goal-card";
+    card.style.setProperty("--goal-index", index);
     const talents = entry.goal.talents;
     const progress = compassGoalProgress(entry.goal);
     const icons = characterImageUrls(entry.character, "icon").filter(Boolean).join("|");
+    const priority = index + 1;
     card.innerHTML = `
+      <div class="goal-priority" aria-label="Prioridade ${priority}">
+        <strong>${priority}º</strong>
+        <span>prioridade</span>
+      </div>
       <div class="member-avatar compass-goal-avatar" data-urls="${escapeHtml(icons)}">
         <img alt="" />
         <span>${escapeHtml(initialsForName(displayCharacterName(entry.character), "?"))}</span>
@@ -3368,7 +3385,11 @@ function renderCompassGoals(calculatedGoals) {
         </div>
         <em>${format(progress)}% do alvo informado</em>
       </div>
-      <button class="small-button" type="button" data-remove-compass="${escapeHtml(entry.goal.characterId)}">Remover</button>
+      <div class="goal-actions">
+        <button class="icon-button" type="button" data-move-compass="${escapeHtml(entry.goal.characterId)}" data-direction="-1" aria-label="Subir prioridade" ${index === 0 ? "disabled" : ""}>↑</button>
+        <button class="icon-button" type="button" data-move-compass="${escapeHtml(entry.goal.characterId)}" data-direction="1" aria-label="Descer prioridade" ${index === calculatedGoals.length - 1 ? "disabled" : ""}>↓</button>
+        <button class="small-button danger" type="button" data-remove-compass="${escapeHtml(entry.goal.characterId)}">Remover</button>
+      </div>
     `;
     list.append(card);
   });
@@ -4996,6 +5017,11 @@ function wireEvents() {
   $("#addCompassGoal").addEventListener("click", addCompassGoal);
   $("#clearCompassGoals").addEventListener("click", clearCompassGoals);
   $("#compassGoalList").addEventListener("click", (event) => {
+    const moveButton = event.target.closest("button[data-move-compass]");
+    if (moveButton) {
+      moveCompassGoal(moveButton.dataset.moveCompass, Number(moveButton.dataset.direction) || 0);
+      return;
+    }
     const button = event.target.closest("button[data-remove-compass]");
     if (button) removeCompassGoal(button.dataset.removeCompass);
   });
