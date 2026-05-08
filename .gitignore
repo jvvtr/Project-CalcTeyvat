@@ -1,0 +1,19 @@
+# Sistema operacional
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editores
+.vscode/
+.idea/
+
+# Dependencias e builds locais
+node_modules/
+dist/
+build/
+
+# Ambiente e arquivos locais
+.env
+.env.*
+sessao_calc_teyvat.txt
+

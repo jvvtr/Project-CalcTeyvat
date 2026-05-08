@@ -1,0 +1,818 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CalcTeyvat - Calculadora Genshin Impact</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="Navegação principal">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">✦</div>
+          <div>
+            <strong>CalcTeyvat</strong>
+            <span>Genshin Impact</span>
+          </div>
+        </div>
+
+        <nav class="nav-tabs" aria-label="Calculadoras">
+          <button class="tab-button active" type="button" data-tab="guia">
+            <span aria-hidden="true">◎</span> Guia
+          </button>
+          <button class="tab-button" type="button" data-tab="personagem">
+            <span aria-hidden="true">◆</span> Personagem
+          </button>
+          <button class="tab-button" type="button" data-tab="talentos">
+            <span aria-hidden="true">◇</span> Talentos
+          </button>
+          <button class="tab-button" type="button" data-tab="armas">
+            <span aria-hidden="true">▲</span> Armas
+          </button>
+          <button class="tab-button" type="button" data-tab="artefatos">
+            <span aria-hidden="true">⬟</span> Artefatos
+          </button>
+          <button class="tab-button" type="button" data-tab="resina">
+            <span aria-hidden="true">●</span> Resina
+          </button>
+          <button class="tab-button" type="button" data-tab="gemas">
+            <span aria-hidden="true">✧</span> Gemas
+          </button>
+          <button class="tab-button" type="button" data-tab="elenco">
+            <span aria-hidden="true">◈</span> Elenco
+          </button>
+          <button class="tab-button" type="button" data-tab="times">
+            <span aria-hidden="true">✦</span> Times
+          </button>
+          <button class="tab-button" type="button" data-tab="montar">
+            <span aria-hidden="true">▣</span> Montar
+          </button>
+        </nav>
+
+        <div class="api-status" id="apiStatus">
+          <span class="status-dot"></span>
+          <span>API aguardando</span>
+        </div>
+      </aside>
+
+      <main class="workspace">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Planejador local</p>
+            <h1>Calculadora Genshin Impact</h1>
+          </div>
+          <div class="top-actions">
+            <button class="ghost-button" type="button" id="exportPlan">Exportar plano</button>
+            <button class="ghost-button" type="button" id="resetInputs">Limpar</button>
+          </div>
+        </header>
+
+        <section class="selector-band hero-band" aria-labelledby="seletores-gerais">
+          <h2 id="seletores-gerais" class="sr-only">Seletores gerais</h2>
+          <img class="hero-art" id="heroArtwork" alt="" />
+          <div class="hero-shade" aria-hidden="true"></div>
+
+          <div class="hero-main">
+            <div class="portrait-card">
+              <div class="portrait-frame">
+                <img id="characterPortrait" alt="" />
+                <div id="portraitFallback" class="portrait-fallback" aria-hidden="true">GI</div>
+              </div>
+              <div class="identity">
+                <label for="characterSelect">Personagem</label>
+                <select id="characterSelect" data-persist="characterSelect">
+                  <option value="">Genérico</option>
+                </select>
+                <div class="identity-meta" id="characterMeta">Cálculo genérico</div>
+              </div>
+            </div>
+
+            <div class="hero-copy">
+              <p class="eyebrow">Personagem ativo</p>
+              <h2 id="heroName">Escolha um personagem</h2>
+              <div class="hero-tags" id="heroTags">
+                <span>Calculadora pronta</span>
+                <span>Sem conexão</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="quick-total">
+            <span>Mora total no plano</span>
+            <strong id="globalMora">0</strong>
+          </div>
+          <div class="quick-total">
+            <span>Resina estimada</span>
+            <strong id="globalResin">0</strong>
+          </div>
+        </section>
+
+        <section class="tab-panel" id="personagem" aria-labelledby="personagem-title">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Nível e ascensão</p>
+              <h2 id="personagem-title">Personagem</h2>
+            </div>
+            <div class="badge-row">
+              <span class="badge">EXP</span>
+              <span class="badge">Gemas</span>
+              <span class="badge">Mora</span>
+            </div>
+          </div>
+
+          <div class="tool-grid">
+            <form class="tool-surface" id="characterForm">
+              <fieldset>
+                <legend>Alvo</legend>
+                <div class="field-row two">
+                  <label>
+                    Nível atual
+                    <select id="charCurrentLevel" data-persist="charCurrentLevel"></select>
+                  </label>
+                  <label>
+                    Nível alvo
+                    <select id="charTargetLevel" data-persist="charTargetLevel"></select>
+                  </label>
+                </div>
+                <div class="field-row two">
+                  <label>
+                    Limite atual
+                    <select id="charCurrentCap" data-persist="charCurrentCap">
+                      <option value="20">20</option>
+                      <option value="40">40</option>
+                      <option value="50">50</option>
+                      <option value="60">60</option>
+                      <option value="70">70</option>
+                      <option value="80">80</option>
+                      <option value="90">90</option>
+                    </select>
+                  </label>
+                  <label>
+                    Limite alvo
+                    <select id="charTargetCap" data-persist="charTargetCap">
+                      <option value="20">20</option>
+                      <option value="40">40</option>
+                      <option value="50">50</option>
+                      <option value="60">60</option>
+                      <option value="70">70</option>
+                      <option value="80">80</option>
+                      <option value="90" selected>90</option>
+                    </select>
+                  </label>
+                </div>
+              </fieldset>
+
+              <details class="advanced-section">
+                <summary>
+                  <span>Materiais e inventário</span>
+                  <small>Nomes, materiais e quantidades atuais.</small>
+                </summary>
+              <fieldset>
+                <legend>Nomes dos materiais</legend>
+                <div class="field-row two">
+                  <label>
+                    Gema elemental
+                    <input id="charGemName" data-persist="charGemName" value="Gema elemental" />
+                  </label>
+                  <label>
+                    Especialidade local
+                    <input id="charSpecialtyName" data-persist="charSpecialtyName" value="Especialidade local" />
+                  </label>
+                </div>
+                <div class="field-row two">
+                  <label>
+                    Chefe normal
+                    <input id="charBossName" data-persist="charBossName" value="Material de chefe normal" />
+                  </label>
+                  <label>
+                    Monstro comum
+                    <input id="charCommonName" data-persist="charCommonName" value="Material de monstro" />
+                  </label>
+                </div>
+              </fieldset>
+
+              <fieldset>
+                <legend>Inventário</legend>
+                <div class="inventory-grid">
+                  <label>Lasca<input type="number" min="0" id="invCharGem1" data-persist="invCharGem1" value="0" /></label>
+                  <label>Fragmento<input type="number" min="0" id="invCharGem2" data-persist="invCharGem2" value="0" /></label>
+                  <label>Pedaço<input type="number" min="0" id="invCharGem3" data-persist="invCharGem3" value="0" /></label>
+                  <label>Gema<input type="number" min="0" id="invCharGem4" data-persist="invCharGem4" value="0" /></label>
+                  <label>Chefe<input type="number" min="0" id="invCharBoss" data-persist="invCharBoss" value="0" /></label>
+                  <label>Especialidade<input type="number" min="0" id="invCharSpecialty" data-persist="invCharSpecialty" value="0" /></label>
+                  <label>Monstro T1<input type="number" min="0" id="invCharCommon1" data-persist="invCharCommon1" value="0" /></label>
+                  <label>Monstro T2<input type="number" min="0" id="invCharCommon2" data-persist="invCharCommon2" value="0" /></label>
+                  <label>Monstro T3<input type="number" min="0" id="invCharCommon3" data-persist="invCharCommon3" value="0" /></label>
+                  <label>Mora<input type="number" min="0" id="invCharMora" data-persist="invCharMora" value="0" /></label>
+                  <label>EXP de Herói<input type="number" min="0" id="invHeroWit" data-persist="invHeroWit" value="0" /></label>
+                  <label>EXP de Aventureiro<input type="number" min="0" id="invAdventurerExp" data-persist="invAdventurerExp" value="0" /></label>
+                  <label>Conselho do Andarilho<input type="number" min="0" id="invWandererAdvice" data-persist="invWandererAdvice" value="0" /></label>
+                </div>
+              </fieldset>
+              </details>
+            </form>
+
+            <div class="results-surface">
+              <div class="result-summary" id="characterSummary"></div>
+              <div class="result-list" id="characterResults"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="tab-panel" id="talentos" aria-labelledby="talentos-title">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Habilidades</p>
+              <h2 id="talentos-title">Talentos</h2>
+            </div>
+            <div class="badge-row">
+              <span class="badge">Livros</span>
+              <span class="badge">Coroas</span>
+              <span class="badge">Chefe semanal</span>
+            </div>
+          </div>
+
+          <div class="tool-grid">
+            <form class="tool-surface" id="talentForm">
+              <fieldset>
+                <legend>Alvos</legend>
+                <div class="talent-lines">
+                  <div class="talent-line">
+                    <span>Ataque</span>
+                    <label>Atual<select id="talentNormalCurrent" data-persist="talentNormalCurrent"></select></label>
+                    <label>Alvo<select id="talentNormalTarget" data-persist="talentNormalTarget"></select></label>
+                  </div>
+                  <div class="talent-line">
+                    <span>Habilidade</span>
+                    <label>Atual<select id="talentSkillCurrent" data-persist="talentSkillCurrent"></select></label>
+                    <label>Alvo<select id="talentSkillTarget" data-persist="talentSkillTarget"></select></label>
+                  </div>
+                  <div class="talent-line">
+                    <span>Supremo</span>
+                    <label>Atual<select id="talentBurstCurrent" data-persist="talentBurstCurrent"></select></label>
+                    <label>Alvo<select id="talentBurstTarget" data-persist="talentBurstTarget"></select></label>
+                  </div>
+                </div>
+              </fieldset>
+
+              <details class="advanced-section">
+                <summary>
+                  <span>Materiais e inventário</span>
+                  <small>Livros, chefe semanal, coroa e estoque.</small>
+                </summary>
+
+              <fieldset>
+                <legend>Nomes dos materiais</legend>
+                <div class="field-row two">
+                  <label>
+                    Serie de livros
+                    <input id="talentBookName" data-persist="talentBookName" value="Livro de talento" />
+                  </label>
+                  <label>
+                    Monstro comum
+                    <input id="talentCommonName" data-persist="talentCommonName" value="Material de monstro" />
+                  </label>
+                </div>
+                <div class="field-row two">
+                  <label>
+                    Chefe semanal
+                    <input id="talentWeeklyName" data-persist="talentWeeklyName" value="Material de chefe semanal" />
+                  </label>
+                  <label>
+                    Coroa
+                    <input id="talentCrownName" data-persist="talentCrownName" value="Coroa do Conhecimento" />
+                  </label>
+                </div>
+              </fieldset>
+
+              <fieldset>
+                <legend>Inventário</legend>
+                <div class="inventory-grid">
+                  <label>Ensinamentos<input type="number" min="0" id="invTeachings" data-persist="invTeachings" value="0" /></label>
+                  <label>Guia<input type="number" min="0" id="invGuide" data-persist="invGuide" value="0" /></label>
+                  <label>Filosofias<input type="number" min="0" id="invPhilosophies" data-persist="invPhilosophies" value="0" /></label>
+                  <label>Monstro T1<input type="number" min="0" id="invTalentCommon1" data-persist="invTalentCommon1" value="0" /></label>
+                  <label>Monstro T2<input type="number" min="0" id="invTalentCommon2" data-persist="invTalentCommon2" value="0" /></label>
+                  <label>Monstro T3<input type="number" min="0" id="invTalentCommon3" data-persist="invTalentCommon3" value="0" /></label>
+                  <label>Semanal<input type="number" min="0" id="invWeekly" data-persist="invWeekly" value="0" /></label>
+                  <label>Coroa<input type="number" min="0" id="invCrown" data-persist="invCrown" value="0" /></label>
+                  <label>Mora<input type="number" min="0" id="invTalentMora" data-persist="invTalentMora" value="0" /></label>
+                </div>
+              </fieldset>
+              </details>
+            </form>
+
+            <div class="results-surface">
+              <div class="result-summary" id="talentSummary"></div>
+              <div class="result-list" id="talentResults"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="tab-panel" id="armas" aria-labelledby="armas-title">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Nível e ascensão</p>
+              <h2 id="armas-title">Armas</h2>
+            </div>
+            <div class="badge-row">
+              <span class="badge">Minério</span>
+              <span class="badge">Domínio</span>
+              <span class="badge">Mora</span>
+            </div>
+          </div>
+
+          <div class="tool-grid">
+            <form class="tool-surface" id="weaponForm">
+              <fieldset>
+                <legend>Arma</legend>
+                <div class="field-row two">
+                  <label>
+                    Buscar arma
+                    <select id="weaponSelect" data-persist="weaponSelect">
+                      <option value="">Genérica</option>
+                    </select>
+                  </label>
+                  <label>
+                    Raridade
+                    <select id="weaponRarity" data-persist="weaponRarity">
+                      <option value="5" selected>5 estrelas</option>
+                      <option value="4">4 estrelas</option>
+                      <option value="3">3 estrelas</option>
+                    </select>
+                  </label>
+                </div>
+                <div class="field-row two">
+                  <label>
+                    Nível atual
+                    <select id="weaponCurrentLevel" data-persist="weaponCurrentLevel"></select>
+                  </label>
+                  <label>
+                    Nível alvo
+                    <select id="weaponTargetLevel" data-persist="weaponTargetLevel"></select>
+                  </label>
+                </div>
+                <div class="field-row two">
+                  <label>
+                    Limite atual
+                    <select id="weaponCurrentCap" data-persist="weaponCurrentCap">
+                      <option value="20">20</option>
+                      <option value="40">40</option>
+                      <option value="50">50</option>
+                      <option value="60">60</option>
+                      <option value="70">70</option>
+                      <option value="80">80</option>
+                      <option value="90">90</option>
+                    </select>
+                  </label>
+                  <label>
+                    Limite alvo
+                    <select id="weaponTargetCap" data-persist="weaponTargetCap">
+                      <option value="20">20</option>
+                      <option value="40">40</option>
+                      <option value="50">50</option>
+                      <option value="60">60</option>
+                      <option value="70">70</option>
+                      <option value="80">80</option>
+                      <option value="90" selected>90</option>
+                    </select>
+                  </label>
+                </div>
+              </fieldset>
+
+              <details class="advanced-section">
+                <summary>
+                  <span>Materiais e inventário</span>
+                  <small>Domínio, inimigos, minérios e estoque.</small>
+                </summary>
+
+              <fieldset>
+                <legend>Nomes dos materiais</legend>
+                <div class="field-row two">
+                  <label>
+                    Material de domínio
+                    <input id="weaponDomainName" data-persist="weaponDomainName" value="Material de ascensão da arma" />
+                  </label>
+                  <label>
+                    Material de elite
+                    <input id="weaponEliteName" data-persist="weaponEliteName" value="Material de elite" />
+                  </label>
+                </div>
+                <label>
+                  Material comum
+                  <input id="weaponCommonName" data-persist="weaponCommonName" value="Material comum" />
+                </label>
+              </fieldset>
+
+              <fieldset>
+                <legend>Inventário</legend>
+                <div class="inventory-grid">
+                  <label>Domínio T1<input type="number" min="0" id="invWeaponMat1" data-persist="invWeaponMat1" value="0" /></label>
+                  <label>Domínio T2<input type="number" min="0" id="invWeaponMat2" data-persist="invWeaponMat2" value="0" /></label>
+                  <label>Domínio T3<input type="number" min="0" id="invWeaponMat3" data-persist="invWeaponMat3" value="0" /></label>
+                  <label>Domínio T4<input type="number" min="0" id="invWeaponMat4" data-persist="invWeaponMat4" value="0" /></label>
+                  <label>Elite T1<input type="number" min="0" id="invWeaponElite1" data-persist="invWeaponElite1" value="0" /></label>
+                  <label>Elite T2<input type="number" min="0" id="invWeaponElite2" data-persist="invWeaponElite2" value="0" /></label>
+                  <label>Elite T3<input type="number" min="0" id="invWeaponElite3" data-persist="invWeaponElite3" value="0" /></label>
+                  <label>Comum T1<input type="number" min="0" id="invWeaponCommon1" data-persist="invWeaponCommon1" value="0" /></label>
+                  <label>Comum T2<input type="number" min="0" id="invWeaponCommon2" data-persist="invWeaponCommon2" value="0" /></label>
+                  <label>Comum T3<input type="number" min="0" id="invWeaponCommon3" data-persist="invWeaponCommon3" value="0" /></label>
+                  <label>Mora<input type="number" min="0" id="invWeaponMora" data-persist="invWeaponMora" value="0" /></label>
+                  <label>Minério místico<input type="number" min="0" id="invMysticOre" data-persist="invMysticOre" value="0" /></label>
+                  <label>Minério fino<input type="number" min="0" id="invFineOre" data-persist="invFineOre" value="0" /></label>
+                  <label>Minério básico<input type="number" min="0" id="invBasicOre" data-persist="invBasicOre" value="0" /></label>
+                </div>
+              </fieldset>
+              </details>
+            </form>
+
+            <div class="results-surface">
+              <div class="weapon-preview">
+                <img id="weaponPortrait" alt="" />
+                <div id="weaponFallback" class="weapon-fallback" aria-hidden="true">A</div>
+                <div>
+                  <strong id="weaponTitle">Arma genérica</strong>
+                  <span id="weaponMeta">5 estrelas</span>
+                </div>
+              </div>
+              <div class="result-summary" id="weaponSummary"></div>
+              <div class="result-list" id="weaponResults"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="tab-panel" id="artefatos" aria-labelledby="artefatos-title">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Fortalecimento</p>
+              <h2 id="artefatos-title">Artefatos</h2>
+            </div>
+            <div class="badge-row">
+              <span class="badge">EXP</span>
+              <span class="badge">Essencia</span>
+              <span class="badge">Mora</span>
+            </div>
+          </div>
+
+          <div class="tool-grid">
+            <form class="tool-surface" id="artifactForm">
+              <fieldset>
+                <legend>Artefato</legend>
+                <div class="field-row three">
+                  <label>
+                    Raridade
+                    <select id="artifactRarity" data-persist="artifactRarity">
+                      <option value="5" selected>5 estrelas</option>
+                      <option value="4">4 estrelas</option>
+                      <option value="3">3 estrelas</option>
+                    </select>
+                  </label>
+                  <label>
+                    Nível atual
+                    <select id="artifactCurrentLevel" data-persist="artifactCurrentLevel"></select>
+                  </label>
+                  <label>
+                    Nível alvo
+                    <select id="artifactTargetLevel" data-persist="artifactTargetLevel"></select>
+                  </label>
+                </div>
+                <div class="field-row two">
+                  <label>
+                    Quantidade de pecas
+                    <input type="number" min="1" max="5" id="artifactPieces" data-persist="artifactPieces" value="1" />
+                  </label>
+                  <label>
+                    Bônus médio
+                    <select id="artifactBonus" data-persist="artifactBonus">
+                      <option value="1" selected>Sem bônus</option>
+                      <option value="1.13">Média 113%</option>
+                    </select>
+                  </label>
+                </div>
+              </fieldset>
+
+              <fieldset>
+                <legend>Inventário</legend>
+                <div class="inventory-grid">
+                  <label>Essencia 10k<input type="number" min="0" id="invSanctEssence" data-persist="invSanctEssence" value="0" /></label>
+                  <label>Unguento 2.5k<input type="number" min="0" id="invSanctUnction" data-persist="invSanctUnction" value="0" /></label>
+                  <label>EXP pronta<input type="number" min="0" id="invArtifactExp" data-persist="invArtifactExp" value="0" /></label>
+                  <label>Mora<input type="number" min="0" id="invArtifactMora" data-persist="invArtifactMora" value="0" /></label>
+                </div>
+              </fieldset>
+            </form>
+
+            <div class="results-surface">
+              <div class="result-summary" id="artifactSummary"></div>
+              <div class="result-list" id="artifactResults"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="tab-panel" id="gemas" aria-labelledby="gemas-title">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Desejos e primogemas</p>
+              <h2 id="gemas-title">Gemas</h2>
+            </div>
+            <div class="badge-row">
+              <span class="badge">160</span>
+              <span class="badge">Garantia</span>
+              <span class="badge">Garantia</span>
+            </div>
+          </div>
+
+          <div class="tool-grid">
+            <form class="tool-surface" id="wishForm">
+              <fieldset>
+                <legend>Saldo</legend>
+                <div class="field-row three">
+                  <label>Primogemas<input type="number" min="0" id="primogems" data-persist="primogems" value="0" /></label>
+                  <label>Cristais Gênesis<input type="number" min="0" id="genesis" data-persist="genesis" value="0" /></label>
+                  <label>Destinos entrelacados<input type="number" min="0" id="intertwined" data-persist="intertwined" value="0" /></label>
+                </div>
+                <div class="field-row three">
+                  <label>Brilho Estrelar<input type="number" min="0" id="starglitter" data-persist="starglitter" value="0" /></label>
+                  <label>Poeira Estrelar<input type="number" min="0" id="stardust" data-persist="stardust" value="0" /></label>
+                  <label>Destino comum<input type="number" min="0" id="acquaint" data-persist="acquaint" value="0" /></label>
+                </div>
+              </fieldset>
+
+              <fieldset>
+                <legend>Oração limitada</legend>
+                <div class="field-row three">
+                  <label>Contador atual<input type="number" min="0" max="89" id="pity" data-persist="pity" value="0" /></label>
+                  <label>
+                    50/50
+                    <select id="guaranteed" data-persist="guaranteed">
+                      <option value="no" selected>Sem garantia</option>
+                      <option value="yes">Garantido</option>
+                    </select>
+                  </label>
+                  <label>Dias até a oração<input type="number" min="0" id="daysUntil" data-persist="daysUntil" value="0" /></label>
+                </div>
+                <div class="field-row three">
+                  <label>Primogemas por dia<input type="number" min="0" id="dailyPrimos" data-persist="dailyPrimos" value="60" /></label>
+                  <label>Extras previstos<input type="number" min="0" id="extraPrimos" data-persist="extraPrimos" value="0" /></label>
+                  <label>Meta de tiros<input type="number" min="1" id="wishGoal" data-persist="wishGoal" value="90" /></label>
+                </div>
+              </fieldset>
+            </form>
+
+            <div class="results-surface">
+              <div class="result-summary" id="wishSummary"></div>
+              <div class="wish-meter" aria-label="Progresso do contador de oração">
+                <div class="wish-meter-fill" id="wishMeter"></div>
+              </div>
+              <div class="result-list" id="wishResults"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="tab-panel" id="times" aria-labelledby="times-title">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Times e construções</p>
+              <h2 id="times-title">Composições</h2>
+            </div>
+            <div class="badge-row">
+              <span class="badge">Artefatos</span>
+              <span class="badge">Sinergia</span>
+              <span class="badge">Atributos</span>
+            </div>
+          </div>
+
+          <div class="team-layout">
+            <div class="team-intro">
+              <strong id="teamLeadName">Escolha um personagem</strong>
+              <span id="teamLeadMeta">As sugestões aparecem automaticamente a partir do personagem selecionado no topo.</span>
+            </div>
+            <div class="team-grid" id="teamCards"></div>
+          </div>
+        </section>
+
+        <section class="tab-panel" id="montar" aria-labelledby="montar-title">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Sinergia manual</p>
+              <h2 id="montar-title">Montar Time</h2>
+            </div>
+            <div class="badge-row">
+              <span class="badge">Reações</span>
+              <span class="badge">Ressonância</span>
+              <span class="badge">Funções</span>
+            </div>
+          </div>
+
+          <div class="builder-grid">
+            <form class="tool-surface" id="customTeamForm">
+              <fieldset>
+                <legend>Escolha os 4 personagens</legend>
+                <div class="field-row two">
+                  <label>Slot 1<select id="teamSlot1" data-persist="teamSlot1"></select></label>
+                  <label>Slot 2<select id="teamSlot2" data-persist="teamSlot2"></select></label>
+                </div>
+                <div class="field-row two">
+                  <label>Slot 3<select id="teamSlot3" data-persist="teamSlot3"></select></label>
+                  <label>Slot 4<select id="teamSlot4" data-persist="teamSlot4"></select></label>
+                </div>
+              </fieldset>
+              <div class="builder-actions">
+                <button class="primary-button" type="button" id="useSelectedInTeam">Usar personagem ativo</button>
+                <button class="ghost-button" type="button" id="clearCustomTeam">Limpar time</button>
+              </div>
+            </form>
+
+            <div class="results-surface">
+              <div class="synergy-head">
+                <div>
+                  <span>Nota de sinergia</span>
+                  <strong id="synergyGrade">Monte um time</strong>
+                </div>
+                <div class="synergy-score" id="synergyScore">0</div>
+              </div>
+              <div class="synergy-meter" aria-label="Nota de sinergia">
+                <div class="synergy-meter-fill" id="synergyMeter"></div>
+              </div>
+              <div class="result-list" id="synergyReasons"></div>
+            </div>
+          </div>
+
+          <div class="team-layout">
+            <div class="team-intro">
+              <strong id="customTeamName">Time personalizado</strong>
+              <span id="customTeamMeta">Avaliação baseada em elementos, reações, ressonâncias, cura/escudo, bônus e conflitos de composição.</span>
+            </div>
+            <div class="team-grid" id="customTeamCards"></div>
+          </div>
+        </section>
+
+        <section class="tab-panel" id="elenco" aria-labelledby="elenco-title">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Sua conta manual</p>
+              <h2 id="elenco-title">Meu Elenco</h2>
+            </div>
+            <div class="badge-row">
+              <span class="badge">Personagens</span>
+              <span class="badge">Talentos</span>
+              <span class="badge">Times possíveis</span>
+            </div>
+          </div>
+
+          <div class="builder-grid">
+            <form class="tool-surface" id="rosterForm">
+              <fieldset>
+                <legend>Adicionar ou atualizar</legend>
+                <label>
+                  Personagem
+                  <select id="ownedCharacterSelect"></select>
+                </label>
+                <div class="field-row three">
+                  <label>Nível<input type="number" min="1" max="90" id="ownedCharLevel" value="90" /></label>
+                  <label>Ataque<input type="number" min="1" max="10" id="ownedTalentNormal" value="1" /></label>
+                  <label>Habilidade<input type="number" min="1" max="10" id="ownedTalentSkill" value="1" /></label>
+                </div>
+                <div class="field-row three">
+                  <label>Supremo<input type="number" min="1" max="10" id="ownedTalentBurst" value="1" /></label>
+                  <label>Arma<input id="ownedWeaponName" placeholder="Ex: Farol do Mar de Juncos" /></label>
+                  <label>Nível da arma<input type="number" min="1" max="90" id="ownedWeaponLevel" value="90" /></label>
+                </div>
+              </fieldset>
+              <div class="builder-actions">
+                <button class="primary-button" type="button" id="saveRosterCharacter">Salvar personagem</button>
+                <button class="ghost-button" type="button" id="clearRosterForm">Limpar formulário</button>
+              </div>
+            </form>
+
+            <div class="results-surface">
+              <div class="result-summary" id="rosterSummary"></div>
+              <div class="roster-list" id="ownedRosterList"></div>
+            </div>
+          </div>
+
+          <div class="team-layout">
+            <div class="team-intro">
+              <strong id="rosterTeamName">Times possíveis</strong>
+              <span id="rosterTeamMeta">Cadastre pelo menos 4 personagens para receber sugestões.</span>
+            </div>
+            <div class="team-grid" id="rosterTeamCards"></div>
+          </div>
+        </section>
+
+        <section class="tab-panel active" id="guia" aria-labelledby="guia-title">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Rotina e mapa</p>
+              <h2 id="guia-title">Bússola diária</h2>
+            </div>
+            <div class="badge-row">
+              <span class="badge">Comissões</span>
+              <span class="badge">Resina</span>
+              <span class="badge">Mapa por nação</span>
+            </div>
+          </div>
+
+          <div class="guide-grid">
+            <div class="tool-surface">
+              <fieldset>
+                <legend>Lista de tarefas de hoje</legend>
+                <div class="check-list" id="guideDailyList"></div>
+              </fieldset>
+
+              <fieldset>
+                <legend>Rota de resina</legend>
+                <div class="check-list" id="guideResinList"></div>
+              </fieldset>
+            </div>
+
+            <div class="results-surface">
+              <div class="result-summary" id="guideSummary"></div>
+              <div class="result-list" id="guideTips"></div>
+            </div>
+          </div>
+
+          <div class="team-layout">
+            <div class="team-intro">
+              <strong>Missões de mapa</strong>
+              <span>Priorize cadeias que desbloqueiam regiões, chefes, recursos, baús grandes ou sistemas de oferenda. Missões baixas ficam para dias de exploração ou completismo.</span>
+            </div>
+
+            <div class="guide-filters" aria-label="Filtros do guia de missões">
+              <label>
+                Nação
+                <select id="guideNationFilter" class="guide-filter" data-persist="guideNationFilter"></select>
+              </label>
+              <label>
+                Prioridade
+                <select id="guidePriorityFilter" class="guide-filter" data-persist="guidePriorityFilter"></select>
+              </label>
+              <label class="toggle-row">
+                <input type="checkbox" id="guidePendingOnly" class="guide-filter" />
+                Mostrar apenas pendentes
+              </label>
+            </div>
+
+            <div class="quest-guide-grid" id="questGuideCards"></div>
+          </div>
+        </section>
+
+        <section class="tab-panel" id="resina" aria-labelledby="resina-title">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Planejamento</p>
+              <h2 id="resina-title">Resina</h2>
+            </div>
+            <div class="badge-row">
+              <span class="badge">180/dia</span>
+              <span class="badge">Limite 200</span>
+              <span class="badge">Condensada</span>
+            </div>
+          </div>
+
+          <div class="tool-grid">
+            <form class="tool-surface" id="resinForm">
+              <fieldset>
+                <legend>Entradas</legend>
+                <div class="field-row three">
+                  <label>Mora faltante<input type="number" min="0" id="resinMoraNeeded" data-persist="resinMoraNeeded" value="0" /></label>
+                  <label>Mora por Linha Ley<input type="number" min="1" id="moraPerLeyline" data-persist="moraPerLeyline" value="60000" /></label>
+                  <label>Resina frágil<input type="number" min="0" id="fragileResin" data-persist="fragileResin" value="0" /></label>
+                </div>
+                <div class="field-row three">
+                  <label>Material de chefe<input type="number" min="0" id="bossDropsNeeded" data-persist="bossDropsNeeded" value="0" /></label>
+                  <label>Média por chefe<input type="number" min="1" step="0.1" id="bossDropAverage" data-persist="bossDropAverage" value="2.5" /></label>
+                  <label>Domínios 20 resina<input type="number" min="0" id="domainRuns" data-persist="domainRuns" value="0" /></label>
+                </div>
+                <div class="field-row three">
+                  <label>Chefe semanal 30<input type="number" min="0" id="weekly30" data-persist="weekly30" value="0" /></label>
+                  <label>Chefe semanal 60<input type="number" min="0" id="weekly60" data-persist="weekly60" value="0" /></label>
+                  <label>EXP de artefato<input type="number" min="0" id="artifactExpFarm" data-persist="artifactExpFarm" value="0" /></label>
+                </div>
+              </fieldset>
+              <button class="primary-button" type="button" id="fillResinFromPlan">Usar totais atuais</button>
+            </form>
+
+            <div class="results-surface">
+              <div class="result-summary" id="resinSummary"></div>
+              <div class="result-list" id="resinResults"></div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <dialog id="exportDialog">
+      <form method="dialog">
+        <div class="dialog-head">
+          <strong>Plano exportado</strong>
+          <button type="submit" aria-label="Fechar">×</button>
+        </div>
+        <textarea id="exportText" readonly></textarea>
+      </form>
+    </dialog>
+
+    <script src="./app.js" defer></script>
+  </body>
+</html>
