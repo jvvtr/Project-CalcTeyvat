@@ -1415,6 +1415,8 @@ const state = {
   weapons: FALLBACK_WEAPONS,
   roster: [],
   compassGoals: [],
+  compassInventory: {},
+  compassChecks: {},
   guideDaily: {},
   guideQuests: {},
   plans: {
@@ -2601,6 +2603,8 @@ function collectPersisted() {
   });
   values.__roster = state.roster || [];
   values.__compassGoals = state.compassGoals || [];
+  values.__compassInventory = state.compassInventory || {};
+  values.__compassChecks = state.compassChecks || {};
   values.__guideDaily = state.guideDaily || {};
   values.__guideQuests = state.guideQuests || {};
   return values;
@@ -2616,6 +2620,12 @@ function restorePersisted() {
     }
     if (Array.isArray(values.__compassGoals)) {
       state.compassGoals = values.__compassGoals;
+    }
+    if (values.__compassInventory && typeof values.__compassInventory === "object" && !Array.isArray(values.__compassInventory)) {
+      state.compassInventory = values.__compassInventory;
+    }
+    if (values.__compassChecks && typeof values.__compassChecks === "object" && !Array.isArray(values.__compassChecks)) {
+      state.compassChecks = values.__compassChecks;
     }
     if (values.__guideDaily && typeof values.__guideDaily === "object" && !Array.isArray(values.__guideDaily)) {
       state.guideDaily = values.__guideDaily;
@@ -2985,6 +2995,7 @@ function renderGuide() {
 }
 
 const COMPASS_CAPS = [20, 40, 50, 60, 70, 80, 90];
+const COMPASS_MORA_PER_LEY = 60000;
 
 const TALENT_BOOK_SCHEDULE = [
   { keys: ["liberdade", "freedom", "prosperidade", "prosperity", "transitoriedade", "transience", "admoestacao", "admonition", "equidade", "equity", "contenda", "contention", "luar", "moonlight"], days: [1, 4, 0], label: "Segunda, quinta e domingo" },
@@ -2997,6 +3008,12 @@ function normalizedCompassKey(value) {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
+}
+
+function compactKey(value) {
+  return normalizedCompassKey(value)
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
 }
 
 function characterById(id) {
@@ -3189,14 +3206,22 @@ function aggregateCompassMaterials(calculatedGoals) {
   calculatedGoals.forEach((entry) => {
     entry.materials.forEach((material) => {
       if (!material.total) return;
-      const key = `${material.label}|${material.note}`;
-      const current = map.get(key) || { ...material, total: 0, missing: 0, owned: 0 };
+      const key = compactKey(`${material.label}|${material.note}`);
+      const current = map.get(key) || { ...material, key, total: 0, missing: 0, owned: 0 };
       current.total += material.total;
-      current.missing += material.missing;
       map.set(key, current);
     });
   });
-  return [...map.values()].sort((a, b) => b.missing - a.missing || a.label.localeCompare(b.label, "pt-BR"));
+  return [...map.values()]
+    .map((material) => {
+      const owned = Math.max(0, Math.ceil(number(state.compassInventory[material.key])));
+      return {
+        ...material,
+        owned,
+        missing: Math.max(0, material.total - owned),
+      };
+    })
+    .sort((a, b) => b.missing - a.missing || a.label.localeCompare(b.label, "pt-BR"));
 }
 
 function talentBookSchedule(bookName) {
@@ -3211,15 +3236,44 @@ function isTalentBookAvailable(bookName, date) {
 }
 
 function compassWorkloads(calculatedGoals) {
-  const moraPerLey = Math.max(1, read("#compassMoraPerLey") || 60000);
+  const moraPerLey = COMPASS_MORA_PER_LEY;
   const workloads = [];
+  const inventoryLeft = { ...state.compassInventory };
   calculatedGoals.forEach((entry) => {
     const name = displayCharacterName(entry.character);
-    const bossRuns = Math.ceil((entry.totals.bossDrops || 0) / 2.5);
-    const talentRuns = Math.ceil((entry.totals.talentBookUnits || 0) / 8);
-    const expRuns = Math.ceil((entry.totals.heroWit || 0) / 4.5);
-    const moraRuns = Math.ceil((entry.totals.mora || 0) / moraPerLey);
-    const weeklyRuns = Math.ceil(entry.totals.weekly || 0);
+    const missing = entry.materials.map((material) => {
+      const key = compactKey(`${material.label}|${material.note}`);
+      const owned = Math.max(0, Math.ceil(number(inventoryLeft[key])));
+      const used = Math.min(material.total, owned);
+      inventoryLeft[key] = Math.max(0, owned - used);
+      return { ...material, missing: Math.max(0, material.total - used) };
+    });
+    const bossDrops = missing
+      .filter((material) => material.note === "Chefe normal")
+      .reduce((sum, material) => sum + material.missing, 0);
+    const weeklyDrops = missing
+      .filter((material) => material.note === "Boss semanal")
+      .reduce((sum, material) => sum + material.missing, 0);
+    const talentBookUnits = missing.reduce((sum, material) => {
+      if (material.note === "Livro T1") return sum + material.missing;
+      if (material.note === "Livro T2") return sum + material.missing * 3;
+      if (material.note === "Livro T3") return sum + material.missing * 9;
+      return sum;
+    }, 0);
+    const expBookUnits = missing.reduce((sum, material) => {
+      if (material.label === "EXP de Herói") return sum + material.missing;
+      if (material.label === "EXP de Aventureiro") return sum + material.missing / 4;
+      if (material.label === "Conselho do Andarilho") return sum + material.missing / 20;
+      return sum;
+    }, 0);
+    const moraMissing = missing
+      .filter((material) => material.label === "Mora")
+      .reduce((sum, material) => sum + material.missing, 0);
+    const bossRuns = Math.ceil(bossDrops / 2.5);
+    const talentRuns = Math.ceil(talentBookUnits / 8);
+    const expRuns = Math.ceil(expBookUnits / 4.5);
+    const moraRuns = Math.ceil(moraMissing / moraPerLey);
+    const weeklyRuns = Math.ceil(weeklyDrops);
     if (weeklyRuns) workloads.push({ type: "weekly", title: "Chefe semanal", detail: `${name}: ${entry.names.weekly}`, runs: weeklyRuns, resin: 30, color: "coral" });
     if (bossRuns) workloads.push({ type: "boss", title: "Chefe normal", detail: `${name}: ${entry.names.boss}`, runs: bossRuns, resin: 40, color: "coral" });
     if (talentRuns) workloads.push({ type: "talent", title: "Domínio de talento", detail: `${name}: ${entry.names.talentBook}`, runs: talentRuns, resin: 20, color: "violet", book: entry.names.talentBook });
@@ -3277,6 +3331,15 @@ function buildCompassAgenda(calculatedGoals) {
   return { agenda, workloads };
 }
 
+function compassGoalProgress(goal) {
+  const levelProgress = goal.targetLevel ? goal.currentLevel / goal.targetLevel : 1;
+  const talentPairs = Object.values(goal.talents || {});
+  const talentProgress = talentPairs.length
+    ? talentPairs.reduce((sum, talent) => sum + (talent.target ? talent.current / talent.target : 1), 0) / talentPairs.length
+    : 1;
+  return clamp((levelProgress * 0.58 + talentProgress * 0.42) * 100, 0, 100);
+}
+
 function renderCompassGoals(calculatedGoals) {
   const list = $("#compassGoalList");
   if (!list) return;
@@ -3290,15 +3353,57 @@ function renderCompassGoals(calculatedGoals) {
     const card = document.createElement("article");
     card.className = "compass-goal-card";
     const talents = entry.goal.talents;
+    const progress = compassGoalProgress(entry.goal);
+    const icons = characterImageUrls(entry.character, "icon").filter(Boolean).join("|");
     card.innerHTML = `
+      <div class="member-avatar compass-goal-avatar" data-urls="${escapeHtml(icons)}">
+        <img alt="" />
+        <span>${escapeHtml(initialsForName(displayCharacterName(entry.character), "?"))}</span>
+      </div>
       <div>
         <strong>${escapeHtml(displayCharacterName(entry.character))}</strong>
         <span>Nv ${format(entry.goal.currentLevel)} → ${format(entry.goal.targetLevel)} · Talentos ${format(talents.normal.current)}/${format(talents.skill.current)}/${format(talents.burst.current)} → ${format(talents.normal.target)}/${format(talents.skill.target)}/${format(talents.burst.target)}</span>
+        <div class="character-progress" style="--progress: ${progress}%">
+          <span></span>
+        </div>
+        <em>${format(progress)}% do alvo informado</em>
       </div>
       <button class="small-button" type="button" data-remove-compass="${escapeHtml(entry.goal.characterId)}">Remover</button>
     `;
     list.append(card);
   });
+  hydrateMemberAvatars(list);
+}
+
+function compassCheckKey(day, task, index) {
+  const date = day.date.toISOString().slice(0, 10);
+  return `${date}:${index}:${compactKey(`${task.title}|${task.detail}`)}`;
+}
+
+function renderCompassInventory(materials) {
+  const container = $("#compassInventory");
+  if (!container) return;
+  container.replaceChildren();
+  const visible = materials.filter((material) => material.total > 0).slice(0, 18);
+  if (!visible.length) {
+    container.innerHTML = `<div class="empty-state compact"><strong>Inventário vazio</strong><span>Quando houver objetivos, informe aqui o que você já tem.</span></div>`;
+    return;
+  }
+  const title = document.createElement("div");
+  title.className = "owned-materials-title";
+  title.innerHTML = `<strong>Materiais que já tenho</strong><span>Esses valores reduzem automaticamente o que falta.</span>`;
+  container.append(title);
+  const grid = document.createElement("div");
+  grid.className = "owned-materials-grid";
+  visible.forEach((material) => {
+    const label = document.createElement("label");
+    label.innerHTML = `
+      <span>${escapeHtml(material.label)}</span>
+      <input type="number" min="0" value="${Math.max(0, Math.ceil(number(state.compassInventory[material.key])))}" data-compass-material-key="${escapeHtml(material.key)}" />
+    `;
+    grid.append(label);
+  });
+  container.append(grid);
 }
 
 function renderCompassAgenda(agenda) {
@@ -3314,6 +3419,8 @@ function renderCompassAgenda(agenda) {
     const card = document.createElement("article");
     card.className = "agenda-card";
     const dateLabel = new Intl.DateTimeFormat("pt-BR", { weekday: "short", day: "2-digit", month: "2-digit" }).format(day.date);
+    const allDone = day.tasks.every((task, taskIndex) => state.compassChecks[compassCheckKey(day, task, taskIndex)]);
+    if (allDone) card.classList.add("done");
     card.innerHTML = `
       <div class="agenda-day">
         <span>Dia ${index + 1}</span>
@@ -3323,12 +3430,20 @@ function renderCompassAgenda(agenda) {
       <div class="agenda-tasks">
         ${day.tasks
           .map(
-            (task) => `
-              <div class="agenda-task ${escapeHtml(task.color || "teal")}">
-                <strong>${escapeHtml(task.title)} · ${format(task.runs)}x</strong>
-                <span>${escapeHtml(ptBr(task.detail))}</span>
-              </div>
-            `,
+            (task, taskIndex) => {
+              const checkKey = compassCheckKey(day, task, taskIndex);
+              return `
+                <div class="agenda-task ${escapeHtml(task.color || "teal")}">
+                  <label class="agenda-check">
+                    <input type="checkbox" class="compass-day-check" data-compass-check="${escapeHtml(checkKey)}" ${state.compassChecks[checkKey] ? "checked" : ""} />
+                    <span>
+                      <strong>${escapeHtml(task.title)} · ${format(task.runs)}x</strong>
+                      <em>${escapeHtml(ptBr(task.detail))}</em>
+                    </span>
+                  </label>
+                </div>
+              `;
+            },
           )
           .join("")}
       </div>
@@ -3371,38 +3486,55 @@ function renderArtifactStats() {
   const character = characterById(select?.value) || characterById(state.compassGoals[0]?.characterId);
   const summary = $("#artifactStatSummary");
   const recommendation = $("#artifactRecommendation");
-  if (!summary || !recommendation) return;
+  const baseGrid = $("#artifactBaseStats");
+  if (!summary || !recommendation || !baseGrid) return;
+
   if (!character) {
+    $("#artifactStatusName").textContent = "Escolha um personagem";
+    $("#artifactStatusMeta").textContent = "Os status aparecem aqui sem campos editáveis.";
+    $("#artifactStatusFallback").textContent = "GI";
+    $("#artifactStatusPortrait")?.classList.remove("has-image");
+    $("#artifactStatusImage")?.removeAttribute("src");
+    baseGrid.replaceChildren();
     renderSummary(summary, [
       { label: "Vida", value: "0", color: "teal" },
       { label: "Ataque", value: "0", color: "gold" },
       { label: "Defesa", value: "0", color: "violet" },
     ]);
-    recommendation.innerHTML = `<div class="empty-state"><strong>Sem personagem</strong><span>Adicione um objetivo ou escolha um personagem para simular artefatos.</span></div>`;
+    recommendation.innerHTML = `<div class="empty-state"><strong>Sem personagem</strong><span>Adicione um objetivo ou escolha um personagem para ver status e artefatos recomendados.</span></div>`;
     return;
   }
 
   const goal = state.compassGoals.find((item) => item.characterId === character.id);
-  const base = estimateCharacterBaseStats(character, goal?.targetLevel || 90);
-  const weaponAtk = read("#artifactWeaponAtk");
-  const hp = Math.round(base.hp * (1 + read("#artifactHpPct") / 100) + read("#artifactFlatHp"));
-  const atk = Math.round((base.atk + weaponAtk) * (1 + read("#artifactAtkPct") / 100) + read("#artifactFlatAtk"));
-  const def = Math.round(base.def * (1 + read("#artifactDefPct") / 100) + read("#artifactFlatDef"));
-  const em = Math.round(read("#artifactEm"));
-  const er = 100 + read("#artifactEr");
-  const critRate = 5 + read("#artifactCritRate");
-  const critDmg = 50 + read("#artifactCritDmg");
-  const dmgBonus = read("#artifactDmgBonus");
+  const level = goal?.targetLevel || 90;
+  const base = estimateCharacterBaseStats(character, level);
   const rec = getArtifactRec(displayCharacterName(character), roleForCharacter(character), character);
+  const critRate = 5;
+  const critDmg = 50;
+  const er = 100;
 
   $("#artifactStatusBadge").textContent = base.source === "api" ? "Base da API" : "Base estimada";
+  $("#artifactStatusName").textContent = displayCharacterName(character);
+  $("#artifactStatusMeta").textContent = `${displayCharacterMetaPart(character.vision)} · ${displayWeaponType(character.weapon)} · Nv ${format(level)}`;
+  $("#artifactStatusFallback").textContent = initialsForName(displayCharacterName(character), "GI");
+  setImageWithFallback(
+    $("#artifactStatusImage"),
+    characterImageUrls(character, "icon"),
+    () => $("#artifactStatusPortrait").classList.add("has-image"),
+    () => $("#artifactStatusPortrait").classList.remove("has-image"),
+  );
+  baseGrid.innerHTML = `
+    <div><span>Vida base</span><strong>${format(base.hp)}</strong></div>
+    <div><span>ATQ base</span><strong>${format(base.atk)}</strong></div>
+    <div><span>DEF base</span><strong>${format(base.def)}</strong></div>
+  `;
   renderSummary(summary, [
-    { label: "Vida final", value: format(hp), color: "teal" },
-    { label: "ATQ final", value: format(atk), color: "gold" },
-    { label: "DEF final", value: format(def), color: "violet" },
-    { label: "Proficiência", value: format(em), color: "leaf" },
-    { label: "Recarga", value: `${er.toFixed(1).replace(".", ",")}%`, color: "teal" },
-    { label: "CRIT", value: `${critRate.toFixed(1).replace(".", ",")}/${critDmg.toFixed(1).replace(".", ",")}`, color: "coral" },
+    { label: "Vida base", value: format(base.hp), color: "teal" },
+    { label: "ATQ base", value: format(base.atk), color: "gold" },
+    { label: "DEF base", value: format(base.def), color: "violet" },
+    { label: "Nível alvo", value: format(level), color: "leaf" },
+    { label: "Recarga base", value: `${er.toFixed(1).replace(".", ",")}%`, color: "teal" },
+    { label: "CRIT base", value: `${critRate.toFixed(1).replace(".", ",")}/${critDmg.toFixed(1).replace(".", ",")}`, color: "coral" },
   ]);
   recommendation.innerHTML = `
     <article class="artifact-rec-card">
@@ -3411,9 +3543,47 @@ function renderArtifactStats() {
       <div><b>Set:</b> ${escapeHtml(ptBr(rec.set))}</div>
       <div><b>Atributos:</b> ${escapeHtml(ptBr(rec.stats))}</div>
       <div><b>Subatributos:</b> ${escapeHtml(ptBr(rec.substats))}</div>
-      <div><b>Bônus elemental informado:</b> ${escapeHtml(dmgBonus.toFixed(1).replace(".", ","))}%</div>
+      <div><b>Observação:</b> os status são exibidos automaticamente e não são editáveis nesta tela.</div>
     </article>
   `;
+}
+
+function compassHeroCharacter(calculatedGoals = []) {
+  return (
+    characterById($("#compassCharacterSelect")?.value) ||
+    calculatedGoals[0]?.character ||
+    characterById($("#artifactCharacterSelect")?.value)
+  );
+}
+
+function renderCompassHeroArt(calculatedGoals) {
+  const hero = $(".compass-hero");
+  const image = $("#compassHeroArtwork");
+  const caption = $("#compassHeroCaption");
+  if (!hero || !image) return;
+  const character = compassHeroCharacter(calculatedGoals);
+
+  if (!character) {
+    hero.classList.remove("has-art");
+    image.removeAttribute("src");
+    if (caption) caption.textContent = "Escolha um personagem para a Bússola carregar a rota de farm.";
+    return;
+  }
+
+  if (caption) {
+    caption.textContent = `${displayCharacterName(character)} · ${displayCharacterMetaPart(character.vision)} · ${displayWeaponType(character.weapon)}`;
+  }
+  setImageWithFallback(
+    image,
+    characterImageUrls(character, "hero"),
+    () => hero.classList.add("has-art"),
+    () => hero.classList.remove("has-art"),
+  );
+}
+
+function refreshCompassHeroArt() {
+  const calculatedGoals = state.compassGoals.map(calculateCompassGoal).filter(Boolean);
+  renderCompassHeroArt(calculatedGoals);
 }
 
 function renderCompass() {
@@ -3430,9 +3600,13 @@ function renderCompass() {
     { label: "Mora total", value: format(totalMora), color: totalMora ? "gold" : "teal" },
   ]);
   renderCompassGoals(calculatedGoals);
+  renderCompassHeroArt(calculatedGoals);
+  renderCompassInventory(materials);
   renderResults($("#compassMaterials"), materials);
   renderCompassAgenda(agenda);
-  $("#compassHeroStats").innerHTML = `<span>${format(calculatedGoals.length)} personagens</span><strong>${format(totalResin)} resina</strong>`;
+  const goalCountText =
+    calculatedGoals.length === 1 ? "1 personagem" : `${format(calculatedGoals.length)} personagens`;
+  $("#compassHeroStats").innerHTML = `<span>${goalCountText}</span><strong>${format(totalResin)} resina</strong>`;
   $("#compassPlanBadge").textContent = agenda.length ? `${format(agenda.length)} dias planejados` : "Sem objetivos";
   if ($("#artifactCharacterSelect") && !$("#artifactCharacterSelect").value && state.compassGoals[0]?.characterId) {
     $("#artifactCharacterSelect").value = state.compassGoals[0].characterId;
@@ -4742,6 +4916,11 @@ function wireEvents() {
       delete event.target.dataset.autoMaterial;
       event.target.removeAttribute("title");
     }
+    if (event.target.matches("[data-compass-material-key]")) {
+      state.compassInventory[event.target.dataset.compassMaterialKey] = integer(event.target.value);
+      savePersisted();
+      return;
+    }
     if (event.target.matches("[data-persist]")) {
       savePersisted();
       calculateAll();
@@ -4751,10 +4930,24 @@ function wireEvents() {
     }
     if (event.target.id?.startsWith("artifact")) {
       renderArtifactStats();
+      if (event.target.id === "artifactCharacterSelect") refreshCompassHeroArt();
     }
   });
 
   document.addEventListener("change", (event) => {
+    if (event.target.matches("[data-compass-material-key]")) {
+      state.compassInventory[event.target.dataset.compassMaterialKey] = integer(event.target.value);
+      savePersisted();
+      renderCompass();
+      return;
+    }
+    if (event.target.matches(".compass-day-check")) {
+      if (event.target.checked) state.compassChecks[event.target.dataset.compassCheck] = true;
+      else delete state.compassChecks[event.target.dataset.compassCheck];
+      savePersisted();
+      renderCompass();
+      return;
+    }
     if (event.target.matches(".guide-check")) {
       setGuideChecked(event.target.dataset.guideScope, event.target.dataset.guideId, event.target.checked);
       savePersisted();
@@ -4771,6 +4964,7 @@ function wireEvents() {
     }
     if (event.target.id?.startsWith("artifact")) {
       renderArtifactStats();
+      if (event.target.id === "artifactCharacterSelect") refreshCompassHeroArt();
     }
     if (event.target.id === "characterSelect") syncSelectedCharacter();
     if (event.target.id === "weaponSelect") syncSelectedWeapon();

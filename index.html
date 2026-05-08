@@ -113,9 +113,12 @@
 
         <section class="tab-panel active" id="bussola" aria-labelledby="bussola-title">
           <div class="compass-hero">
+            <img class="compass-hero-art" id="compassHeroArtwork" alt="" />
+            <div class="compass-hero-overlay" aria-hidden="true"></div>
             <div>
               <p class="eyebrow">Agenda de progresso</p>
               <h2 id="bussola-title">Defina seus alvos e siga o plano diário</h2>
+              <p class="compass-hero-caption" id="compassHeroCaption">Escolha um personagem para a Bússola carregar a rota de farm.</p>
             </div>
             <div class="compass-hero-stats" id="compassHeroStats">
               <span>0 personagens</span>
@@ -164,10 +167,23 @@
 
               <fieldset>
                 <legend>Ritmo</legend>
-                <div class="field-row three">
+                <div class="field-row two">
                   <label>Resina por dia<input type="number" min="20" max="200" id="compassDailyResin" data-persist="compassDailyResin" value="180" /></label>
-                  <label>Mora por Linha Ley<input type="number" min="1" id="compassMoraPerLey" data-persist="compassMoraPerLey" value="60000" /></label>
                   <label>Dias visíveis<input type="number" min="3" max="60" id="compassVisibleDays" data-persist="compassVisibleDays" value="21" /></label>
+                </div>
+                <div class="fixed-rules-grid" aria-label="Regras fixas do jogo">
+                  <div class="fixed-rule">
+                    <span>Mora por Linha Ley</span>
+                    <strong>60.000</strong>
+                  </div>
+                  <div class="fixed-rule">
+                    <span>Chefe normal</span>
+                    <strong>40 resina</strong>
+                  </div>
+                  <div class="fixed-rule">
+                    <span>Domínio / Linha Ley</span>
+                    <strong>20 resina</strong>
+                  </div>
                 </div>
               </fieldset>
 
@@ -203,6 +219,7 @@
                 </div>
                 <span class="badge">Personagens e talentos</span>
               </div>
+              <div class="owned-materials" id="compassInventory"></div>
               <div class="result-list" id="compassMaterials"></div>
             </section>
           </div>
@@ -217,32 +234,23 @@
             </div>
 
             <div class="artifact-grid">
-              <form class="artifact-stat-form" id="artifactStatForm">
+              <div class="character-status-card">
                 <label>
                   Personagem
                   <select id="artifactCharacterSelect"></select>
                 </label>
-                <div class="field-row three">
-                  <label>ATQ arma<input type="number" min="0" id="artifactWeaponAtk" data-persist="artifactWeaponAtk" value="0" /></label>
-                  <label>Vida plana<input type="number" min="0" id="artifactFlatHp" data-persist="artifactFlatHp" value="4780" /></label>
-                  <label>ATQ plano<input type="number" min="0" id="artifactFlatAtk" data-persist="artifactFlatAtk" value="311" /></label>
+                <div class="status-character">
+                  <div class="status-portrait" id="artifactStatusPortrait">
+                    <img id="artifactStatusImage" alt="" />
+                    <span id="artifactStatusFallback">GI</span>
+                  </div>
+                  <div>
+                    <strong id="artifactStatusName">Escolha um personagem</strong>
+                    <span id="artifactStatusMeta">Os status são calculados a partir do alvo selecionado.</span>
+                  </div>
                 </div>
-                <div class="field-row three">
-                  <label>DEF plana<input type="number" min="0" id="artifactFlatDef" data-persist="artifactFlatDef" value="0" /></label>
-                  <label>Vida %<input type="number" min="0" step="0.1" id="artifactHpPct" data-persist="artifactHpPct" value="46.6" /></label>
-                  <label>ATQ %<input type="number" min="0" step="0.1" id="artifactAtkPct" data-persist="artifactAtkPct" value="46.6" /></label>
-                </div>
-                <div class="field-row three">
-                  <label>DEF %<input type="number" min="0" step="0.1" id="artifactDefPct" data-persist="artifactDefPct" value="0" /></label>
-                  <label>Proficiência<input type="number" min="0" id="artifactEm" data-persist="artifactEm" value="0" /></label>
-                  <label>Recarga %<input type="number" min="0" step="0.1" id="artifactEr" data-persist="artifactEr" value="0" /></label>
-                </div>
-                <div class="field-row three">
-                  <label>Taxa CRIT %<input type="number" min="0" step="0.1" id="artifactCritRate" data-persist="artifactCritRate" value="31.1" /></label>
-                  <label>Dano CRIT %<input type="number" min="0" step="0.1" id="artifactCritDmg" data-persist="artifactCritDmg" value="62.2" /></label>
-                  <label>Bônus elemental %<input type="number" min="0" step="0.1" id="artifactDmgBonus" data-persist="artifactDmgBonus" value="46.6" /></label>
-                </div>
-              </form>
+                <div class="base-stat-grid" id="artifactBaseStats"></div>
+              </div>
 
               <div>
                 <div class="result-summary" id="artifactStatSummary"></div>
